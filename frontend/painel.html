@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moderação | AlertaLar</title>
+  <meta name="description" content="Moderação de relatos e importação de registros oficiais.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo" class="conteiner pagina">
+  <h1>Moderação</h1>
+  <div id="p-sem-acesso" class="oculto"></div>
+
+  <div id="p-conteudo" class="oculto">
+    <section aria-labelledby="t-relatos">
+      <h2 id="t-relatos">Relatos de moradores</h2>
+      <p class="texto-secundario">Confirme apenas relatos coerentes e plausíveis. Relatos confirmados passam a contar na análise de risco dos endereços próximos. Um relato confirmado por engano pode ser rejeitado depois, na aba Confirmados. Aqui aparecem só os relatos de usuários, dos mais recentes para os mais antigos; os registros oficiais não passam por moderação.</p>
+      <div class="abas" role="group" aria-label="Filtrar por situação">
+        <button type="button" data-status="PENDENTE" aria-pressed="true">Pendentes <span id="p-contador"></span></button>
+        <button type="button" data-status="CONFIRMADA" aria-pressed="false">Confirmados</button>
+        <button type="button" data-status="REJEITADA" aria-pressed="false">Rejeitados</button>
+      </div>
+      <form id="p-busca" class="busca-moderacao" role="search">
+        <label for="p-termo">Buscar relato</label>
+        <div class="busca-linha">
+          <input id="p-termo" name="busca" type="search" maxlength="100" placeholder="Rua, cidade, descrição ou nome de quem enviou">
+          <button class="botao botao-pequeno" type="submit">Buscar</button>
+          <button class="botao botao-secundario botao-pequeno" type="button" id="p-limpar" hidden>Limpar</button>
+        </div>
+      </form>
+      <p id="p-total" class="dica" aria-live="polite"></p>
+      <div id="p-msg" aria-live="polite"></div>
+      <div id="p-lista"></div>
+      <div class="paginacao">
+        <button class="botao botao-secundario botao-pequeno" type="button" id="p-anterior">Página anterior</button>
+        <span id="p-pagina"></span>
+        <button class="botao botao-secundario botao-pequeno" type="button" id="p-proxima">Próxima página</button>
+      </div>
+    </section>
+
+    <section class="bloco painel" aria-labelledby="t-importar">
+      <h2 id="t-importar">Importar registros oficiais (S2iD / Atlas Digital)</h2>
+      <p>O sistema já vem com a base oficial do Atlas Digital de Desastres no Brasil (v1.1, de 06/08/2026), com os desastres ligados a chuva de todos os municípios de 1991 a 2025. Use esta importação só para incluir registros mais novos.</p>
+      <p>Baixe a planilha de registros de desastres no <a href="https://s2id.mi.gov.br" rel="noopener" target="_blank">S2iD</a> ou no <a href="https://atlasdigital.mdr.gov.br" rel="noopener" target="_blank">Atlas Digital de Desastres no Brasil</a> e envie o arquivo CSV aqui, como foi baixado.</p>
+      <p class="dica">A planilha precisa ter as colunas de UF, município (ou código IBGE), data do evento e COBRADE ou tipo de desastre. São importados inundações, enxurradas, alagamentos e chuvas intensas; registros que já existem são ignorados.</p>
+      <form id="form-importar" novalidate>
+        <div class="campos">
+          <div class="campo">
+            <label for="arquivo">Arquivo CSV</label>
+            <input id="arquivo" name="arquivo" type="file" accept=".csv,.txt,text/csv" required>
+          </div>
+        </div>
+        <div id="msg-importar" aria-live="polite"></div>
+        <div class="acoes"><button class="botao" type="submit" id="botao-importar">Importar planilha</button></div>
+      </form>
+    </section>
+  </div>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script type="module" src="/js/paginas/painel.js"></script>
+</body>
+</html>

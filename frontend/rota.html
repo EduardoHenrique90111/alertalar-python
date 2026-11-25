@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rota segura | AlertaLar</title>
+  <meta name="description" content="Caminho a pé ou de carro até o lugar que você escolher, desviando das áreas de risco de inundação mapeadas.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo" class="conteiner pagina">
+  <h1>Rota segura</h1>
+  <p class="introducao texto-secundario">Caminho a pé ou de carro até o lugar que você escolher (casa de parente, abrigo, ponto de apoio), desviando das áreas de risco de inundação mapeadas pelo Serviço Geológico do Brasil.</p>
+
+  <div class="alerta-emergencia" role="note">
+    <strong>Em perigo agora?</strong>
+    <span>Ligue <a href="tel:199">199</a> (Defesa Civil) ou <a href="tel:193">193</a> (Bombeiros). Nunca atravesse ruas alagadas, a pé ou de carro.</span>
+  </div>
+
+  <div class="grade-rota">
+    <section class="painel" aria-labelledby="t-partida">
+      <h2 id="t-partida" class="passo-titulo"><span class="passo" aria-hidden="true">1</span>De onde você sai</h2>
+      <button class="botao botao-largo" type="button" id="botao-local">Usar minha localização</button>
+      <p class="dica">Ou busque um endereço ou local, ou marque no mapa:</p>
+      <form id="form-busca" novalidate>
+        <div class="campos">
+          <div class="campo dois-tercos">
+            <label for="b-rua">Endereço ou nome do local</label>
+            <input id="b-rua" name="rua" maxlength="200" autocomplete="address-line1" placeholder="Rua das Flores, 120">
+          </div>
+          <div class="campo terco">
+            <label for="b-estado">Estado</label>
+            <select id="b-estado" name="estado" data-ufs></select>
+          </div>
+          <div class="campo">
+            <label for="b-cidade">Cidade</label>
+            <input id="b-cidade" name="cidade" maxlength="120" autocomplete="address-level2">
+          </div>
+        </div>
+        <div class="acoes">
+          <button class="botao botao-secundario botao-pequeno" type="submit" id="botao-buscar">Buscar partida</button>
+          <button class="botao botao-secundario botao-pequeno" type="button" id="marcar-partida">Marcar no mapa</button>
+        </div>
+      </form>
+      <div id="b-opcoes" aria-live="polite"></div>
+      <p class="partida"><span id="partida-texto">Ponto de partida ainda não definido.</span>
+        <button type="button" class="botao-link" id="remover-partida" hidden>Remover partida</button></p>
+
+      <h2 class="passo-titulo" id="t-destino"><span class="passo" aria-hidden="true">2</span>Para onde</h2>
+      <p class="dica">Casa de parente, abrigo, shopping… O caminho desvia das áreas de risco.</p>
+      <div id="bloco-destino">
+        <form id="form-destino" novalidate>
+          <div class="campos">
+            <div class="campo dois-tercos">
+              <label for="d-rua">Endereço ou nome do destino</label>
+              <input id="d-rua" name="rua" maxlength="200" placeholder="Canoas Shopping">
+            </div>
+            <div class="campo terco">
+              <label for="d-estado">Estado</label>
+              <select id="d-estado" name="estado"></select>
+            </div>
+            <div class="campo">
+              <label for="d-cidade">Cidade</label>
+              <input id="d-cidade" name="cidade" maxlength="120">
+            </div>
+          </div>
+          <div class="acoes">
+            <button class="botao botao-secundario botao-pequeno" type="submit" id="botao-buscar-destino">Buscar destino</button>
+            <button class="botao botao-secundario botao-pequeno" type="button" id="marcar-destino">Marcar no mapa</button>
+          </div>
+        </form>
+        <div id="d-opcoes" aria-live="polite"></div>
+        <p class="partida"><span id="destino-texto">Destino ainda não definido. Busque acima ou marque no mapa.</span>
+          <button type="button" class="botao-link" id="remover-destino" hidden>Remover destino</button></p>
+      </div>
+
+      <fieldset class="bloco-curto">
+        <legend class="passo-titulo"><span class="passo" aria-hidden="true">3</span>Como você vai</legend>
+        <div class="abas" role="group" aria-label="Modo de deslocamento">
+          <button type="button" data-modo="A_PE" aria-pressed="true">A pé</button>
+          <button type="button" data-modo="CARRO" aria-pressed="false">De carro</button>
+        </div>
+      </fieldset>
+
+      <button class="botao botao-largo" type="button" id="botao-calcular" disabled>Calcular rota segura</button>
+      <div id="msg-rota" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="t-mapa-rota">
+      <h2 id="t-mapa-rota" class="sr">Mapa da rota</h2>
+      <div class="mapa-com-aviso">
+        <div id="aviso-marcacao" class="aviso-marcacao oculto" role="status">
+          <span id="aviso-marcacao-texto"></span>
+          <button type="button" class="botao botao-secundario botao-pequeno" id="cancelar-marcacao">Cancelar</button>
+        </div>
+        <div id="progresso-mapa" class="progresso-mapa oculto"></div>
+        <div id="mapa-rota" class="mapa mapa-alto" role="application" aria-label="Mapa da rota segura"></div>
+      </div>
+      <ul class="legenda-mapa">
+        <li><i class="l-usuario"></i>Você está aqui</li>
+        <li><i class="l-imovel"></i>Partida</li>
+        <li><i class="l-destino"></i>Destino</li>
+        <li><i class="l-rota"></i>Caminho sugerido</li>
+        <li><i class="l-setor"></i>Área de risco (SGB)</li>
+        <li><i class="l-relato"></i>Trecho mais baixo</li>
+      </ul>
+    </section>
+  </div>
+
+  <section id="resultado-rota" class="oculto bloco" aria-labelledby="t-resultado-rota" tabindex="-1">
+    <h2 id="t-resultado-rota">Rota sugerida</h2>
+    <p class="resumo-rota" id="r-mensagem"></p>
+    <div class="medidas" id="r-medidas"></div>
+    <p id="r-destino" class="texto-secundario"></p>
+
+    <div id="r-perfil-bloco" class="oculto">
+      <h3>Altura do terreno ao longo do caminho</h3>
+      <div id="r-perfil" class="perfil-elevacao"></div>
+      <p class="dica" id="r-perfil-legenda"></p>
+    </div>
+
+    <div id="r-avisos"></div>
+
+    <div class="duas-colunas bloco">
+      <div>
+        <h3>Passo a passo</h3>
+        <ol class="instrucoes" id="r-instrucoes"></ol>
+      </div>
+      <div>
+        <h3>Levar no celular</h3>
+        <p>Abra o destino no aplicativo de mapas para seguir com o GPS. O aplicativo pode sugerir outro caminho: prefira o desenhado aqui, que desvia das áreas de risco mapeadas.</p>
+        <p><a class="botao botao-secundario" id="r-abrir-mapas" href="#" target="_blank" rel="noopener">Abrir no aplicativo de mapas</a></p>
+        <h3>Fontes</h3>
+        <ul id="r-fontes" class="lista-simples"></ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="/js/paginas/rota.js"></script>
+</body>
+</html>

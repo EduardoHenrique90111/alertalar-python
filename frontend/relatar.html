@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatar alagamento | AlertaLar</title>
+  <meta name="description" content="Envie um relato de alagamento ou enchente. Os relatos são verificados antes de entrar na análise de risco.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo" class="conteiner pagina pagina-estreita">
+  <h1>Relatar um alagamento</h1>
+  <p class="texto-secundario">Seu relato ajuda outras pessoas a conhecer o histórico da região. Ele será verificado pela moderação antes de aparecer no site e de contar na análise de risco.</p>
+
+  <form id="form-relato" novalidate>
+    <div class="campos">
+      <div class="campo">
+        <label for="localizacao">Local da ocorrência</label>
+        <input id="localizacao" name="localizacao" required maxlength="300" placeholder="Rua, número ou ponto de referência">
+      </div>
+      <div class="campo dois-tercos">
+        <label for="municipio">Município</label>
+        <input id="municipio" name="municipio" required maxlength="120">
+      </div>
+      <div class="campo terco">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado" required data-ufs></select>
+      </div>
+      <div class="campo metade">
+        <label for="dataOcorrencia">Data</label>
+        <input id="dataOcorrencia" name="dataOcorrencia" type="date" required>
+      </div>
+      <div class="campo metade">
+        <label for="tipoEvento">O que aconteceu</label>
+        <select id="tipoEvento" name="tipoEvento" required>
+          <option value="ALAGAMENTO">Alagamento (água acumulada na rua)</option>
+          <option value="INUNDACAO">Inundação (rio ou arroio transbordou)</option>
+          <option value="ENXURRADA">Enxurrada (água corrente com força)</option>
+          <option value="OUTRO">Outro evento ligado à chuva</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="descricao">Descrição</label>
+        <textarea id="descricao" name="descricao" required minlength="10" maxlength="2000" placeholder="Até onde a água chegou, por quanto tempo, se entrou em casas…"></textarea>
+      </div>
+    </div>
+
+    <fieldset class="bloco">
+      <legend class="rotulo">Posição no mapa (recomendado)</legend>
+      <p class="dica">Clique no mapa onde aconteceu. Sem a posição, o relato fica registrado apenas para o município e não entra na análise de endereços próximos.</p>
+      <div id="mapa-relato" class="mapa" role="application" aria-label="Mapa para marcar o local da ocorrência"></div>
+      <p class="dica" id="posicao-relato">Nenhuma posição marcada.</p>
+      <div class="acoes">
+        <button class="botao botao-secundario botao-pequeno" type="button" id="botao-localizacao">Usar minha localização</button>
+        <button class="botao botao-secundario botao-pequeno" type="button" id="botao-remover-posicao">Remover posição</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="bloco">
+      <legend class="rotulo">Identificação (opcional)</legend>
+      <p class="dica">Nome e contato não são exibidos publicamente. Servem apenas para a moderação esclarecer dúvidas sobre o relato.</p>
+      <div class="campos">
+        <div class="campo metade">
+          <label for="nomeRelator">Nome</label>
+          <input id="nomeRelator" name="nomeRelator" maxlength="120" autocomplete="name">
+        </div>
+        <div class="campo metade">
+          <label for="contatoRelator">E-mail</label>
+          <input id="contatoRelator" name="contatoRelator" type="email" maxlength="254" autocomplete="email">
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="campo bloco">
+      <label class="caixa-selecao"><input type="checkbox" name="declaracaoVeracidade" id="declaracaoVeracidade"> As informações são verdadeiras, até onde sei.</label>
+    </div>
+    <div id="msg-relato" aria-live="polite"></div>
+    <div class="acoes">
+      <button class="botao" type="submit" id="botao-enviar">Enviar relato</button>
+    </div>
+  </form>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="/js/paginas/relatar.js"></script>
+</body>
+</html>

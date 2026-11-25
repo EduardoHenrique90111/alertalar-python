@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AlertaLar: risco de enchentes e alagamentos por endereço</title>
+  <meta name="description" content="Consulte se um endereço fica em área sujeita a enchentes e alagamentos, com base em rios próximos, relevo, áreas de risco oficiais e ocorrências registradas.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo">
+  <section class="abertura">
+    <div class="conteiner abertura-grade">
+      <div>
+        <h1>Saiba se o endereço fica em área sujeita a alagamentos.</h1>
+        <p class="introducao">Antes de alugar, comprar ou decidir onde morar, veja o que os dados públicos dizem sobre rios próximos, altura do terreno, áreas de risco oficiais e alagamentos já registrados.</p>
+
+        <div class="abertura-legenda">
+          <h2>Como ler o resultado</h2>
+          <div class="legenda-regua">
+            <div class="regua" data-nivel="MODERADO" aria-hidden="true">
+              <div class="regua-agua"></div>
+              <div class="regua-faixas"><span class="f-alto"></span><span class="f-elevado"></span><span class="f-moderado"></span><span class="f-baixo"></span></div>
+            </div>
+            <ul class="legenda-niveis">
+              <li class="n-alto"><strong>Alto risco</strong><span>Indícios fortes, como área de risco oficial ou terreno baixo junto a um rio.</span></li>
+              <li class="n-moderado"><strong>Risco moderado</strong><span>Alguns fatores de suscetibilidade a enchentes.</span></li>
+              <li class="n-baixo"><strong>Baixo risco</strong><span>Os dados não indicam suscetibilidade elevada. Não quer dizer que o local nunca alague.</span></li>
+              <li class="n-insuficiente"><strong>Dados insuficientes</strong><span>Faltam dados confiáveis para classificar o endereço.</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <section class="painel" id="consultar" aria-labelledby="titulo-consulta">
+        <h2 id="titulo-consulta">Consultar endereço</h2>
+        <ol class="passos-consulta" aria-label="Etapas da consulta">
+          <li data-passo="1" class="atual">Endereço</li>
+          <li data-passo="2">Confirmar no mapa</li>
+          <li data-passo="3">Análise</li>
+        </ol>
+
+        <div class="etapa-consulta ativa" data-etapa="1">
+          <form id="form-endereco" novalidate>
+            <div class="campos">
+              <div class="campo metade">
+                <label for="cep">CEP <span class="dica">(opcional)</span></label>
+                <input id="cep" name="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000">
+                <span class="dica" id="cep-status" aria-live="polite">Preenche rua, bairro e cidade.</span>
+              </div>
+              <div class="campo dois-tercos">
+                <label for="rua">Rua ou avenida</label>
+                <input id="rua" name="rua" required maxlength="200" autocomplete="address-line1">
+              </div>
+              <div class="campo terco">
+                <label for="numero">Número</label>
+                <input id="numero" name="numero" maxlength="20" inputmode="numeric">
+              </div>
+              <div class="campo">
+                <label for="bairro">Bairro</label>
+                <input id="bairro" name="bairro" maxlength="120">
+              </div>
+              <div class="campo dois-tercos">
+                <label for="cidade">Cidade</label>
+                <input id="cidade" name="cidade" required maxlength="120" autocomplete="address-level2">
+              </div>
+              <div class="campo terco">
+                <label for="estado">Estado</label>
+                <select id="estado" name="estado" required data-ufs></select>
+              </div>
+            </div>
+            <div id="msg-endereco" aria-live="polite"></div>
+            <div class="acoes">
+              <button class="botao" type="submit" id="botao-localizar">Localizar no mapa</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="etapa-consulta" data-etapa="2">
+          <p><span class="precisao" id="precisao"></span></p>
+          <p id="texto-confirmacao" class="texto-secundario"></p>
+          <div id="mapa-confirmacao" class="mapa" role="application" aria-label="Mapa para confirmar a posição do imóvel. Clique para mover o marcador."></div>
+          <p class="dica" id="coordenadas"></p>
+          <div id="msg-confirmacao" aria-live="polite"></div>
+          <div class="acoes">
+            <button class="botao" type="button" id="botao-analisar">Analisar este ponto</button>
+            <button class="botao botao-secundario" type="button" id="botao-voltar">Corrigir endereço</button>
+          </div>
+        </div>
+
+        <div class="etapa-consulta" data-etapa="3" aria-live="polite">
+          <div class="carregando">
+            <div class="regua" aria-hidden="true"><div class="regua-agua"></div></div>
+            <div>
+              <p><strong id="texto-carregando">Consultando rios, relevo e registros de ocorrências…</strong></p>
+              <p class="dica">Isso pode levar alguns segundos: os dados vêm de várias fontes públicas.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="secao" id="como-funciona" aria-labelledby="t-como">
+    <div class="conteiner">
+      <h2 id="t-como">Como funciona</h2>
+      <ol class="passos">
+        <li>
+          <h3>Você informa o endereço</h3>
+          <p>Com o CEP, preenchemos rua, bairro e cidade. O número do imóvel ajuda a chegar ao ponto exato.</p>
+        </li>
+        <li>
+          <h3>Você confirma a posição</h3>
+          <p>Mostramos onde o endereço caiu no mapa. Se o marcador não estiver sobre o imóvel, basta clicar no lugar certo.</p>
+        </li>
+        <li>
+          <h3>Os dados são cruzados</h3>
+          <p>Cada fonte é consultada separadamente. O resultado explica o peso de cada fator e mostra o que não pôde ser avaliado.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="secao secao-branca" aria-labelledby="t-dimensoes">
+    <div class="conteiner">
+      <h2 id="t-dimensoes">O que a análise considera</h2>
+      <p class="texto-secundario">A classificação resume indícios encontrados nos dados disponíveis. Não é laudo técnico nem previsão do tempo.</p>
+      <div class="dimensoes">
+        <div class="dimensao">
+          <h3>Áreas de risco mapeadas</h3>
+          <p>Setores de risco alto e muito alto de inundação, enxurrada e alagamento delimitados pelo Serviço Geológico do Brasil. Nem todos os municípios foram mapeados.</p>
+        </div>
+        <div class="dimensao">
+          <h3>Suscetibilidade do terreno</h3>
+          <p>Distância até rios, córregos e canais do OpenStreetMap e a altura do imóvel em relação à água e ao entorno, pelo modelo de elevação Copernicus.</p>
+        </div>
+        <div class="dimensao">
+          <h3>Histórico de ocorrências</h3>
+          <p>Registros oficiais de desastres no município e alagamentos relatados por moradores, que só contam depois de verificados pela moderação.</p>
+        </div>
+        <div class="dimensao atual">
+          <h3>Risco agora</h3>
+          <p>A chuva das últimas horas, a prevista e a subida de rios, combinadas com a suscetibilidade do local, mostram o risco deste momento. Para alertas oficiais, envie seu CEP por SMS para 40199.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao secao-escura" id="prevencao" aria-labelledby="t-prev">
+    <div class="conteiner">
+      <h2 id="t-prev">Prevenção: o que fazer antes, durante e depois</h2>
+      <p class="texto-secundario">Orientações gerais da Defesa Civil. Siga sempre as instruções das autoridades do seu município.</p>
+      <div class="fases">
+        <div>
+          <h3>Antes</h3>
+          <ul>
+            <li>Cadastre seu CEP para receber alertas: envie um SMS com o CEP para 40199.</li>
+            <li>Guarde documentos, remédios e itens essenciais em sacos plásticos fechados, em local alto.</li>
+            <li>Conheça o caminho até um lugar alto e seguro e combine um ponto de encontro com a família.</li>
+            <li>Mantenha calhas, ralos e bueiros livres; não jogue lixo em córregos.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Durante</h3>
+          <ul>
+            <li>Desligue a energia elétrica e o gás se a água começar a entrar.</li>
+            <li>Não atravesse ruas alagadas a pé ou de carro: pouca água em movimento já derruba uma pessoa.</li>
+            <li>Evite contato com a água da enchente, que pode transmitir doenças como a leptospirose.</li>
+            <li>Saia de casa se a Defesa Civil orientar e leve animais de estimação.</li>
+            <li>Se precisar sair, use a <a href="/rota.html">rota segura</a> até um lugar que você escolher: o caminho desvia das áreas de risco mapeadas.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Depois</h3>
+          <ul>
+            <li>Volte para casa só quando as autoridades liberarem o acesso.</li>
+            <li>Peça a um eletricista para verificar a instalação antes de religar a energia.</li>
+            <li>Descarte alimentos e remédios que tiveram contato com a água.</li>
+            <li>Limpe e desinfete a casa com água sanitária, usando luvas e botas.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="telefones">
+        <div class="telefone"><strong>199</strong><span>Defesa Civil</span></div>
+        <div class="telefone"><strong>193</strong><span>Corpo de Bombeiros</span></div>
+        <div class="telefone"><strong>192</strong><span>SAMU</span></div>
+        <div class="telefone"><strong>40199</strong><span>Alertas por SMS (envie seu CEP)</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="/js/paginas/inicio.js"></script>
+</body>
+</html>

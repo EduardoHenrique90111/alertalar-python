@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resultado da consulta | AlertaLar</title>
+  <meta name="description" content="Classificação de risco de enchentes e alagamentos para o endereço consultado, com fatores, mapa e fontes.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo">
+  <div id="r-carregando" class="conteiner pagina">
+    <div class="carregando">
+      <div class="regua" aria-hidden="true"><div class="regua-agua"></div></div>
+      <p><strong>Carregando o resultado…</strong></p>
+    </div>
+  </div>
+  <div id="r-erro" class="conteiner pagina oculto"></div>
+
+  <div id="resultado" class="oculto">
+    <section class="cabecalho-resultado">
+      <div class="conteiner">
+        <h1 class="endereco" id="r-endereco"></h1>
+        <p class="texto-secundario" id="r-meta"></p>
+        <section class="agora" id="r-agora" data-nivel="CARREGANDO" aria-labelledby="t-agora" aria-live="polite">
+          <div class="agora-cabeca">
+            <h2 id="t-agora" class="agora-titulo">Risco agora</h2>
+            <p class="agora-rotulo" id="r-agora-rotulo">Consultando a chuva…</p>
+          </div>
+          <p class="agora-resumo" id="r-agora-resumo">Chuva das últimas horas e prevista para as próximas 24 horas, combinada com a suscetibilidade do local.</p>
+          <ul class="agora-motivos" id="r-agora-motivos"></ul>
+          <p class="agora-pe"><a href="#t-situacao">Ver chuva e rios</a> · <a href="/metodologia.html#t-agora-metodo">Como é calculado</a></p>
+        </section>
+        <div id="r-avisos"></div>
+      </div>
+    </section>
+
+    <div class="conteiner">
+      <div class="grade-resultado">
+        <section aria-labelledby="t-classificacao">
+          <h2 id="t-classificacao" class="sr">Classificação de risco</h2>
+          <div class="veredito">
+            <div class="regua" id="r-regua" role="img">
+              <div class="regua-agua" id="r-agua"></div>
+              <div class="regua-faixas"><span class="f-alto"></span><span class="f-elevado"></span><span class="f-moderado"></span><span class="f-baixo"></span></div>
+              <div class="regua-marca" id="r-marca"></div>
+            </div>
+            <div class="veredito-texto">
+              <p class="sobretitulo">Suscetibilidade do local</p>
+              <p class="rotulo-risco" id="r-rotulo"></p>
+              <p id="r-resumo"></p>
+              <p class="indice" id="r-indice"></p>
+              <p class="link-rota"><a class="botao botao-pequeno" id="link-rota" href="/rota.html">Planejar rota segura a partir daqui</a></p>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="t-mapa">
+          <h2 id="t-mapa" class="sr">Mapa do entorno</h2>
+          <div id="r-mapa" class="mapa mapa-alto" role="application" aria-label="Mapa com a posição do imóvel, cursos d'água, setores de risco e ocorrências"></div>
+          <ul class="legenda-mapa">
+            <li><i class="l-imovel"></i>Imóvel</li>
+            <li><i class="l-agua"></i>Rios e córregos (OpenStreetMap)</li>
+            <li><i class="l-setor"></i>Setor de risco (SGB)</li>
+            <li><i class="l-oficial"></i>Registro oficial</li>
+            <li><i class="l-relato"></i>Relato validado</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="bloco" aria-labelledby="t-dim">
+        <h2 id="t-dim">O que pesou na avaliação</h2>
+        <div class="faixa-dimensoes" id="r-dimensoes"></div>
+      </section>
+
+      <section class="situacao-atual" aria-labelledby="t-situacao">
+        <h2 id="t-situacao">Situação atual</h2>
+        <p class="texto-secundario">Chuva e rios neste momento, estimados por modelos. Eles definem o risco agora, mostrado no topo; a suscetibilidade do local não muda com o tempo do dia.</p>
+        <div id="r-situacao"><p class="vazio">Consultando dados de chuva e vazão…</p></div>
+      </section>
+
+      <section class="bloco" aria-labelledby="t-fatores">
+        <h2 id="t-fatores">Fatores avaliados</h2>
+        <p class="texto-secundario">Cada fator vale de 0 a 3. Fatores sem dados ou sem registro ficam fora da conta, para que a falta de informação não pareça segurança.</p>
+        <ul class="lista-fatores" id="r-fatores"></ul>
+      </section>
+
+      <div class="duas-colunas bloco">
+        <section aria-labelledby="t-ocorrencias">
+          <h2 id="t-ocorrencias" class="bloco-titulo">Ocorrências próximas</h2>
+          <div id="r-ocorrencias"></div>
+        </section>
+        <section aria-labelledby="t-historico">
+          <h2 id="t-historico" class="bloco-titulo">Histórico oficial do município</h2>
+          <div id="r-historico"></div>
+        </section>
+      </div>
+
+      <section class="bloco" aria-labelledby="t-fontes">
+        <h2 id="t-fontes">Fontes utilizadas</h2>
+        <div class="tabela-rolagem">
+          <table>
+            <thead><tr><th scope="col">Fonte</th><th scope="col">Tipo</th><th scope="col">Última atualização</th><th scope="col">Uso</th></tr></thead>
+            <tbody id="r-fontes"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <details class="metodo">
+        <summary>Como esta classificação foi calculada</summary>
+        <p>Cada fator recebe de 0 (sem indício) a 3 (indício forte) pontos e tem um peso. A classificação usa a média ponderada dos fatores que puderam ser avaliados: a partir de 1,9 é alto risco; a partir de 1,0, risco moderado; abaixo disso, baixo risco. Estar dentro de um setor de risco alto ou muito alto do Serviço Geológico do Brasil leva a alto risco. Três ou mais ocorrências confirmadas nas proximidades impedem a classificação baixo risco. Sem pelo menos dois fatores avaliados, incluindo um geográfico, o resultado é dados insuficientes.</p>
+        <p class="justificativa" id="r-justificativa"></p>
+        <p><a href="/metodologia.html">Ver a metodologia completa</a></p>
+      </details>
+
+      <div class="acoes bloco">
+        <a class="botao" href="/#consultar">Consultar outro endereço</a>
+        <button class="botao botao-secundario" type="button" id="botao-copiar">Copiar link do resultado</button>
+        <a class="botao botao-secundario" href="/relatar.html" id="link-relatar">Relatar um alagamento aqui</a>
+      </div>
+      <div id="msg-copiar" aria-live="polite"></div>
+      <div class="pagina"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script src="/assets/vendor/leaflet/leaflet.js"></script>
+<script type="module" src="/js/paginas/resultado.js"></script>
+</body>
+</html>

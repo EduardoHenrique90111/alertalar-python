@@ -1,0 +1,9 @@
+# Dependências do AlertaLar (Python 3.12 ou superior). Instale com:
+#   pip install -r requirements.txt
+fastapi>=0.165,<1
+uvicorn>=0.40,<1
+sqlalchemy>=2.0.40,<2.1
+psycopg[binary]>=3.3,<3.4
+bcrypt>=4.1,<6
+requests>=2.32,<3
+python-multipart>=0.0.20,<0.1

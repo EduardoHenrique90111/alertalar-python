@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Como analisamos | AlertaLar</title>
+  <meta name="description" content="Metodologia da análise de risco do AlertaLar, fontes de dados utilizadas e limitações conhecidas.">
+  <link rel="icon" href="/assets/icone.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Pular para o conteúdo</a>
+<header class="topo">
+  <div class="topo-interno">
+    <a class="marca" href="/" aria-label="AlertaLar, página inicial">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 15 16 5l12 10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M7 13.5V27h18V13.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/><path d="M7 21.5h18" stroke="#2f7fb8" stroke-width="2.6"/><path d="M11 24.5h4M11 18h2.5M11 15.5h4" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span>AlertaLar</span>
+    </a>
+    <button class="menu-botao" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav id="menu" class="menu" aria-label="Principal">
+      <a href="/#consultar">Consultar endereço</a>
+      <a href="/rota.html">Rota segura</a>
+      <a href="/ocorrencias.html">Ocorrências</a>
+      <a href="/relatar.html">Relatar alagamento</a>
+      <a href="/metodologia.html">Como analisamos</a>
+      <a href="/entrar.html" class="menu-conta" data-link-conta>Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo" class="conteiner pagina">
+  <h1>Como analisamos</h1>
+  <p class="introducao texto-secundario">O AlertaLar reúne dados públicos sobre um ponto do mapa e mostra quais indícios de suscetibilidade a enchentes eles revelam. A análise é transparente: cada fator aparece no resultado com seu valor, sua fonte e sua data.</p>
+
+  <section class="bloco" aria-labelledby="t-separacao">
+    <h2 id="t-separacao">Três perguntas diferentes</h2>
+    <ul class="regras">
+      <li><strong>O local já foi mapeado como área de risco?</strong> Setores de risco hidrológico do Serviço Geológico do Brasil.</li>
+      <li><strong>O terreno favorece o acúmulo ou a chegada de água?</strong> Proximidade de rios e córregos e altura do terreno em relação à água e ao entorno.</li>
+      <li><strong>Já houve ocorrências?</strong> Registros oficiais do município e relatos de moradores verificados.</li>
+    </ul>
+    <p>Essas três perguntas formam a <strong>suscetibilidade do local</strong>: o quanto ele tende a ser atingido quando chove forte. Ela não muda com o tempo do dia. Por isso o resultado também mostra o <a href="#t-agora-metodo">risco agora</a>, que combina a suscetibilidade com a chuva e os rios deste momento. Nenhum dos dois é alerta oficial: para receber os alertas da Defesa Civil, envie seu CEP por SMS para 40199.</p>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-fatores">
+    <h2 id="t-fatores">Fatores e pontuação</h2>
+    <div class="tabela-rolagem">
+      <table>
+        <thead><tr><th scope="col">Fator</th><th scope="col">Peso</th><th scope="col">Como pontua (0 a 3)</th><th scope="col">Fonte</th></tr></thead>
+        <tbody>
+          <tr><td>Área de risco mapeada</td><td>3</td><td>Dentro de setor de risco alto ou muito alto: 3 e classificação alto risco. Setor a até 100 m: 2. Até 300 m: 1. Sem setor: não pontua.</td><td>Serviço Geológico do Brasil</td></tr>
+          <tr><td>Proximidade de água</td><td>2</td><td>Rio, canal ou corpo d'água a até 150 m: 3; até 400 m: 2; até 1.000 m: 1. Córrego, vala ou dreno a até 50 m: 2; até 150 m: 1. Nada em 1.500 m: 0.</td><td>OpenStreetMap (Overpass)</td></tr>
+          <tr><td>Elevação relativa</td><td>2</td><td>Até 2 m acima do curso d'água mais próximo: 3; até 5 m: 2; até 10 m: 1. Ponto 5 m abaixo da média do entorno (300 m): 2; 2 m abaixo: 1. Vale a maior pontuação.</td><td>Copernicus DEM GLO-90</td></tr>
+          <tr><td>Ocorrências próximas</td><td>2</td><td>Ocorrências confirmadas em 500 m nos últimos 30 anos: 1, 2 ou 3 ou mais. Três ou mais impedem a classificação baixo risco. Sem ocorrências: não pontua.</td><td>Registros oficiais e relatos validados</td></tr>
+          <tr><td>Histórico do município</td><td>0,75</td><td>Desastres oficiais ligados a chuva (inundação, enxurrada, alagamento ou chuvas intensas) registrados pelo município em 30 anos: 1 a 4 registros: 1; 5 ou mais: 2. Por ser municipal, nunca passa de 2.</td><td>Atlas Digital de Desastres (MIDR/Sedec, registros do S2iD)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-classe">
+    <h2 id="t-classe">Da pontuação à classificação</h2>
+    <ul class="regras">
+      <li>Média ponderada dos fatores avaliados: a partir de 1,9 é <strong>alto risco</strong>; a partir de 1,0, <strong>risco moderado</strong>; abaixo de 1,0, <strong>baixo risco</strong>.</li>
+      <li>São necessários pelo menos dois fatores avaliados, sendo um geográfico. Caso contrário, o resultado é <strong>dados insuficientes</strong>.</li>
+      <li>Quando uma fonte não responde ou não tem registro, o fator fica fora da média. A falta de dados nunca é tratada como segurança.</li>
+      <li>Baixo risco significa que os dados disponíveis não indicam suscetibilidade elevada. Nenhum local é declarado livre de enchentes.</li>
+    </ul>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-agora-metodo">
+    <h2 id="t-agora-metodo">Risco agora</h2>
+    <p>Calculado cada vez que o resultado é aberto, com a chuva estimada por modelos meteorológicos (Open-Meteo) para o ponto: as últimas 72 horas e as próximas 24 horas.</p>
+    <div class="tabela-rolagem">
+      <table>
+        <thead><tr><th scope="col">Nível da chuva</th><th scope="col">Em uma hora</th><th scope="col">Em 24 horas</th><th scope="col">Em 72 horas</th></tr></thead>
+        <tbody>
+          <tr><td>1. Perigo potencial</td><td>20 mm ou mais</td><td>30 mm ou mais</td><td>100 mm ou mais</td></tr>
+          <tr><td>2. Chuva forte</td><td>30 mm ou mais</td><td>50 mm ou mais</td><td>150 mm ou mais</td></tr>
+          <tr><td>3. Chuva muito forte</td><td>mais de 60 mm</td><td>mais de 100 mm</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="dica">Os limites por hora e o de 50 e 100 mm em 24 horas são os que o INMET usa nos avisos de chuvas intensas. O piso de 30 mm em 24 horas e os limites de 72 horas (solo encharcado) foram definidos pelo AlertaLar.</p>
+    <ul class="regras">
+      <li>Sem chuva nesses níveis, o risco agora é <strong>baixo</strong>, mesmo num local de alta suscetibilidade.</li>
+      <li>Com chuva, o risco sobe conforme o local: num local de <strong>baixa</strong> suscetibilidade, fica um nível abaixo do nível da chuva; de suscetibilidade <strong>moderada</strong>, igual ao nível da chuva; de <strong>alta</strong>, um nível acima. Os níveis são baixo, atenção, alto e muito alto.</li>
+      <li>Se o rio mais próximo na grade do modelo GloFAS tiver previsão de subir 50% ou mais em 7 dias e o local ficar perto de água, o risco agora é no mínimo <strong>atenção</strong>.</li>
+      <li>Chuva de 50 mm ou mais prevista entre 24 e 72 horas aparece como aviso para os próximos dias.</li>
+    </ul>
+    <p>Modelos erram a chuva de um bairro, principalmente em temporais isolados. Se estiver chovendo forte onde você está, siga a Defesa Civil mesmo que o nível mostrado seja baixo.</p>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-rota">
+    <h2 id="t-rota">Rota segura</h2>
+    <p>A página <a href="/rota.html">Rota segura</a> sugere um caminho a pé ou de carro até o lugar que você escolher (casa de parente, abrigo, ponto de apoio). Ela não é uma rota oficial de evacuação: em emergência, siga sempre a Defesa Civil (199).</p>
+    <ul class="regras">
+      <li><strong>Destino:</strong> endereço, nome do local ou ponto marcado no mapa, até 20 km da partida em linha reta.</li>
+      <li><strong>Caminho:</strong> calculado sobre as ruas do OpenStreetMap pelo serviço Valhalla, com os setores de risco hidrológico próximos marcados como áreas a evitar. Se não houver caminho que desvie de todos, o resultado avisa.</li>
+      <li><strong>Conferência:</strong> o caminho é comparado de novo com os setores de risco e com a altura do terreno em 60 pontos (Copernicus DEM GLO-90). Trechos que passam por setores ou que descem mais de 2 m abaixo da partida aparecem como aviso, assim como um destino dentro de um setor ou mais baixo que a partida.</li>
+      <li><strong>Andamento na tela:</strong> enquanto o caminho é calculado, um painel sobre o mapa mostra cada consulta no momento em que ela acontece (GPS, endereço no OpenStreetMap, altura da partida e do destino, áreas de risco do SGB, caminho no Valhalla e perfil de altura), o tempo de cada uma e um aviso quando algum serviço demora mais que o normal. Dá para cancelar a qualquer momento.</li>
+      <li><strong>Limites:</strong> o cálculo não sabe quais ruas estão alagadas ou bloqueadas agora, e a altura do terreno tem erro de alguns metros.</li>
+    </ul>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-limites">
+    <h2 id="t-limites">Limitações conhecidas</h2>
+    <ul>
+      <li>O modelo de elevação tem resolução de 90 m e erro vertical de alguns metros; pode incluir construções e vegetação.</li>
+      <li>O mapeamento de rios e córregos no OpenStreetMap é colaborativo e varia por região. Córregos canalizados podem não aparecer.</li>
+      <li>O Serviço Geológico do Brasil mapeou setores de risco apenas em parte dos municípios.</li>
+      <li>Registros oficiais do S2iD são municipais e não indicam a rua afetada. O sistema já inclui a base consolidada do Atlas Digital de Desastres (v1.1, 1991 a 2025, todos os municípios); eventos mais recentes entram quando uma planilha nova é importada.</li>
+      <li>A ausência de registro oficial não significa que o município nunca teve enchente: depende de a prefeitura ter registrado o evento no S2iD.</li>
+      <li>A geocodificação pode errar o ponto. Por isso você confirma a posição no mapa antes da análise.</li>
+    </ul>
+  </section>
+
+  <section class="bloco" aria-labelledby="t-fontes">
+    <h2 id="t-fontes">Fontes de dados</h2>
+    <p class="texto-secundario">Fontes que o AlertaLar consulta e a data da última atualização de cada uma, lidas diretamente do sistema.</p>
+    <div class="tabela-rolagem">
+      <table>
+        <thead><tr><th scope="col">Fonte</th><th scope="col">Situação</th><th scope="col">Última atualização</th><th scope="col">Descrição</th></tr></thead>
+        <tbody id="m-fontes"><tr><td colspan="4" class="vazio">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape">
+  <div class="conteiner">
+    <div class="rodape-grade">
+      <div>
+        <h2>AlertaLar</h2>
+        <p>Consulta de riscos de enchentes e alagamentos a partir de dados públicos. As avaliações indicam indícios nos dados disponíveis e não substituem laudos técnicos nem os alertas da Defesa Civil.</p>
+      </div>
+      <div>
+        <h2>Navegação</h2>
+        <ul>
+          <li><a href="/#consultar">Consultar endereço</a></li>
+          <li><a href="/rota.html">Rota segura</a></li>
+          <li><a href="/ocorrencias.html">Ocorrências registradas</a></li>
+          <li><a href="/relatar.html">Relatar um alagamento</a></li>
+          <li><a href="/metodologia.html">Metodologia e fontes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Em emergência</h2>
+        <ul>
+          <li>Defesa Civil: 199</li>
+          <li>Corpo de Bombeiros: 193</li>
+          <li>Alertas por SMS: CEP para 40199</li>
+        </ul>
+      </div>
+    </div>
+    <p class="creditos">Mapas © colaboradores do OpenStreetMap. Elevação: Copernicus DEM GLO-90. Setores de risco: Serviço Geológico do Brasil. Dados meteorológicos: Open-Meteo.</p>
+  </div>
+</footer>
+
+<script type="module" src="/js/paginas/metodologia.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+Leaflet 1.9.4 (https://leafletjs.com) - biblioteca de mapas interativos.
+Licença BSD 2-Clause: (c) 2010-2023 Vladimir Agafonkin, (c) 2010-2011 CloudMade.
+Texto completo: https://github.com/Leaflet/Leaflet/blob/main/LICENSE
+Arquivos copiados do pacote oficial da versão 1.9.4 (github.com/Leaflet/Leaflet/releases).
