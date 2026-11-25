@@ -70,3 +70,34 @@ def test_python_m_alertalar_sobe_um_unico_servidor_na_porta_do_ambiente(monkeypa
     assert chamada["proxy_headers"] is False and chamada["server_header"] is False
     assert any(getattr(r, "path", None) == "/actuator/health" for r in chamada["app"].routes)
     chamada["app"].state.servicos.encerrar()
+
+
+def test_database_url_colada_com_prefixo_ou_quebrada_em_linhas_ainda_vale():
+    for colada in ("DATABASE_URL=postgresql://u:s3nha@ep-x.us-east-1.aws.neon.tech/neondb?sslmode=require",
+                   "postgresql://u:s3nha@ep-x.us-east-1.aws\n  .neon.tech/neondb?sslmode=require&channel_binding=require\n",
+                   "export DATABASE_URL='postgresql://u:s3nha@ep-x.us-east-1.aws.neon.tech/neondb?sslmode=require'"):
+        c = Configuracoes.do_ambiente({"DATABASE_URL": colada})
+        assert c.db_url == "postgresql://ep-x.us-east-1.aws.neon.tech/neondb?sslmode=require"
+        assert (c.db_usuario, c.db_senha) == ("u", "s3nha")
+        assert c.descricao_banco == "ep-x.us-east-1.aws.neon.tech/neondb"
+        assert c.origem_banco == "DATABASE_URL"
+
+
+def test_database_url_errada_impede_o_inicio_com_mensagem_clara_e_sem_mostrar_a_senha():
+    import pytest
+
+    from alertalar.config import ConfiguracaoInvalida
+
+    casos = {
+        "neondb_owner npg_segredo123": "não começa com postgresql://",
+        "postgresql://ep-x.neon.tech/neondb": "Falta o usuário e a senha",
+        "postgresql://neondb_owner:****************@ep-x.neon.tech/neondb?sslmode=require": "asteriscos",
+    }
+    for valor, trecho in casos.items():
+        with pytest.raises(ConfiguracaoInvalida) as erro:
+            Configuracoes.do_ambiente({"DATABASE_URL": valor})
+        assert trecho in str(erro.value)
+        assert "segredo" not in str(erro.value)
+    # DB_URL definida tem prioridade: a DATABASE_URL não é usada nem conferida
+    assert Configuracoes.do_ambiente({"DATABASE_URL": "lixo", "DB_URL": "postgresql://h/db"}).origem_banco == "DB_URL"
+    assert Configuracoes.do_ambiente({}).origem_banco.startswith("nenhuma variável")

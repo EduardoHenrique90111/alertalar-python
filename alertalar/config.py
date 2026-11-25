@@ -15,6 +15,10 @@ from urllib.parse import quote, unquote, urlsplit
 PADRAO_DB_URL = "postgresql://alertalar@localhost:5432/alertalar"
 
 
+class ConfiguracaoInvalida(ValueError):
+    """Configuração que impede o AlertaLar de iniciar; a mensagem diz o que corrigir (sem mostrar senhas)."""
+
+
 def ler_env(caminhos: list[Path] | None = None) -> dict[str, str]:
     """Junta as variáveis do sistema com as do .env (as do sistema prevalecem)."""
     valores: dict[str, str] = {}
@@ -45,9 +49,15 @@ def converter_database_url(valor: str) -> dict[str, str]:
     Devolve um dicionário vazio se não reconhecer o formato.
     """
     texto = valor.strip()
+    if texto.lower().startswith("export "):
+        texto = texto[len("export "):].strip()
+    if texto.upper().startswith("DATABASE_URL="):
+        texto = texto[len("DATABASE_URL="):].strip()
     if texto.startswith("psql "):
         texto = texto[5:].strip()
     texto = texto.strip("'\"")
+    # Copiada do texto quebrado em linhas: espaços e quebras de linha não fazem parte da URL
+    texto = "".join(texto.split())
     if texto.startswith("jdbc:postgresql://"):
         return {"DB_URL": texto}
     try:
@@ -72,6 +82,26 @@ def converter_database_url(valor: str) -> dict[str, str]:
     if len(credenciais) == 2:
         resultado["DB_PASSWORD"] = _decodificar(credenciais[1])
     return resultado
+
+
+def problema_database_url(valor: str) -> str | None:
+    """Mensagem para quem preencheu DATABASE_URL com algo que não serve; None se estiver certa.
+    A mensagem nunca repete o valor (ele tem a senha do banco)."""
+    formato = ("Ela deve ter o formato postgresql://USUARIO:SENHA@HOST/BANCO?sslmode=require "
+               "(no Neon: Connect → Copy snippet).")
+    convertido = converter_database_url(valor)
+    if not convertido:
+        dica = ""
+        if "postgres" not in valor:
+            dica = " Ela não começa com postgresql://."
+        elif "@" not in valor:
+            dica = " Falta o usuário e a senha (a parte antes do @)."
+        return (f"A variável DATABASE_URL está preenchida ({len(valor.strip())} caracteres), mas não é uma "
+                f"connection string do PostgreSQL.{dica} {formato}")
+    if "***" in convertido.get("DB_PASSWORD", ""):
+        return ("A senha na DATABASE_URL está escondida com asteriscos (foi copiada do texto da tela). "
+                "Copie a connection string pelo botão de copiar do Neon, que traz a senha de verdade.")
+    return None
 
 
 def _decodificar(valor: str) -> str:
@@ -177,6 +207,8 @@ class Configuracoes:
     db_usuario: str = "alertalar"
     db_senha: str = ""
     db_pool: int = 10
+    # De onde veio a conexão: "DATABASE_URL", "DB_URL" ou nenhuma (banco local padrão)
+    origem_banco: str = "nenhuma variável (DATABASE_URL e DB_URL vazias)"
     cookie_seguro: bool = False
     # Atrás de proxy reverso (Nginx, Render, Railway...): confia nos cabeçalhos X-Forwarded-*
     confiar_proxy: bool = False
@@ -208,14 +240,35 @@ class Configuracoes:
     def url_banco(self) -> str:
         return montar_url_sqlalchemy(self.db_url, self.db_usuario, self.db_senha)
 
+    @property
+    def descricao_banco(self) -> str:
+        """Servidor e banco, para os registros (sem usuário nem senha): "host:5432/banco"."""
+        url = self.db_url[len("jdbc:"):] if self.db_url.startswith("jdbc:") else self.db_url
+        try:
+            partes = urlsplit(url)
+            porta = f":{partes.port}" if partes.port else ""
+            return f"{partes.hostname}{porta}{partes.path or ''}"
+        except ValueError:
+            return "(endereço inválido)"
+
     @classmethod
     def do_ambiente(cls, env: dict[str, str] | None = None) -> Configuracoes:
         e = ler_env() if env is None else env
         # DATABASE_URL tem a menor prioridade: DB_URL, DB_USERNAME e DB_PASSWORD continuam valendo
-        banco = converter_database_url(e["DATABASE_URL"]) if e.get("DATABASE_URL", "").strip() else {}
+        banco: dict[str, str] = {}
+        origem = "nenhuma variável (DATABASE_URL e DB_URL vazias)"
+        if e.get("DATABASE_URL", "").strip():
+            if not e.get("DB_URL"):
+                problema = problema_database_url(e["DATABASE_URL"])
+                if problema:
+                    raise ConfiguracaoInvalida(problema)
+            banco = converter_database_url(e["DATABASE_URL"])
+            origem = "DATABASE_URL"
         for chave in ("DB_URL", "DB_USERNAME", "DB_PASSWORD"):
             if e.get(chave):
                 banco[chave] = e[chave]
+        if e.get("DB_URL"):
+            origem = "DB_URL"
         g = e.get
         integ = Integracoes(
             viacep_url=g("VIACEP_URL") or Integracoes.viacep_url,
@@ -239,6 +292,7 @@ class Configuracoes:
             db_usuario=banco.get("DB_USERNAME", "alertalar"),
             db_senha=banco.get("DB_PASSWORD", ""),
             db_pool=int(g("DB_POOL") or 10),
+            origem_banco=origem,
             cookie_seguro=_booleano(g("COOKIE_SECURE")),
             confiar_proxy=(g("FORWARD_HEADERS_STRATEGY") or "none").strip().lower() in ("framework", "native"),
             contato_email=g("ALERTALAR_CONTATO_EMAIL") or "",

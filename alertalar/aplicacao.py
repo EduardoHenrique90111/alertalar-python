@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from starlette.staticfiles import StaticFiles
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -39,7 +40,13 @@ def criar_app(config: Configuracoes | None = None, servicos: container.Servicos 
     async def ciclo_de_vida(app: FastAPI):
         s = app.state.servicos
         if config.aplicar_migracoes:
-            aplicadas = migracoes.aplicar(s.engine)
+            try:
+                aplicadas = migracoes.aplicar(s.engine)
+            except OperationalError as e:
+                motivo = str(e.orig if e.orig is not None else e).strip().splitlines()[0]
+                log.error("Não foi possível conectar ao banco de dados %s (origem: %s): %s",
+                          config.descricao_banco, config.origem_banco, motivo)
+                raise
             if aplicadas:
                 log.info("Migrações aplicadas: %s", ", ".join(f"V{v}" for v in aplicadas))
         container.criar_admin_inicial(s)

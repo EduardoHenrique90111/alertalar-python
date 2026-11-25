@@ -48,8 +48,10 @@ conta: com a versão em Java e a em Python, só um dos dois pode ficar sempre ac
 
 ## Se algo der errado
 
-- **Deploy falhou**: abra o serviço → **Logs**. Se aparecer erro de conexão com o banco, a
-  connection string está errada: em **Environment**, corrija `DATABASE_URL` e clique em
-  **Save, rebuild, and deploy**.
+- **Deploy falhou**: abra o serviço → **Logs**. Logo no início aparece a linha
+  `Banco de dados: HOST/BANCO (origem: ...)`. Se ela mostrar `localhost` e "nenhuma variável", a
+  `DATABASE_URL` ficou vazia; se aparecer "Configuração inválida" ou "Não foi possível conectar",
+  a connection string está errada. Em **Environment**, corrija `DATABASE_URL` (copie pelo botão
+  **Copy snippet** do Neon, que traz a senha de verdade) e clique em **Save, rebuild, and deploy**.
 - **Memória**: o plano gratuito tem 512 MB; a versão em Python usa cerca de 100 MB.
 - **Limite de conexões do Neon**: o `render.yaml` já usa `DB_POOL=5` (até 5 conexões ao banco).

@@ -171,7 +171,7 @@ Proveniência e filtro: [alertalar/dados/LEIA-ME.md](alertalar/dados/LEIA-ME.md)
 python -m pytest
 ```
 
-Há 189 testes (pytest): validação de endereços, geocodificação (com a reserva do Photon quando
+Há 191 testes (pytest): validação de endereços, geocodificação (com a reserva do Photon quando
 o Nominatim recusa pedidos), código IBGE, fatores e classificação de risco, risco agora (níveis
 de chuva do INMET e combinação com a suscetibilidade), processamento da consulta, registro e
 moderação de ocorrências, importação de planilhas, base oficial embutida, migrações (inclusive
