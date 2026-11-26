@@ -1,11 +1,3 @@
-"""Carrega no banco o histórico oficial de desastres ligados a chuva de todos os municípios
-(inundações, enxurradas, alagamentos e chuvas intensas, 1991–2025), a partir da base compacta gerada
-do Atlas Digital de Desastres no Brasil v1.1 (MIDR/Sedec, registros do S2iD).
-
-Executada uma única vez. Usa o mesmo identificador ("PROT:" + protocolo do S2iD) da importação
-manual, então uma planilha mais nova importada depois pela Moderação não duplica registros.
-"""
-
 from __future__ import annotations
 
 import gzip
@@ -37,8 +29,6 @@ _INSERIR = text("""
 
 @dataclass(frozen=True)
 class Registro:
-    """Uma linha da base compacta (colunas geradas por ferramentas/preparar_base_atlas.py)."""
-
     protocolo: str
     uf: str
     municipio: str

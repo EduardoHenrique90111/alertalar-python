@@ -1,5 +1,3 @@
-"""Cliente do Valhalla contra um servidor local que responde no formato da API real."""
-
 import json
 
 import pytest

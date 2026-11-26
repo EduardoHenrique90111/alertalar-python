@@ -1,10 +1,3 @@
-"""Formatos de entrada e saída da API (JSON com nomes em camelCase, como o front-end espera).
-
-Os pedidos são lidos pelo Pydantic (tipos) e conferidos por ``validar()``, que devolve as mesmas
-mensagens em português para cada campo. Um erro de tipo (ex.: data que não é data) vira a resposta
-genérica "Requisição inválida"; uma regra de campo vira "Dados inválidos" com a lista ``erros``.
-"""
-
 from __future__ import annotations
 
 import re
@@ -22,7 +15,6 @@ T = TypeVar("T")
 
 
 def camel(nome: str) -> str:
-    """data_consulta → dataConsulta; ultimas_24h_mm → ultimas24hMm."""
     primeira, *resto = nome.split("_")
     return primeira + "".join(p[:1].upper() + p[1:] for p in resto)
 
@@ -32,13 +24,9 @@ class Esquema(BaseModel):
 
 
 class Pedido(Esquema):
-    """Corpo de requisição: aceita números onde se espera texto e ignora campos desconhecidos."""
-
     model_config = ConfigDict(alias_generator=camel, populate_by_name=True, coerce_numbers_to_str=True,
                               extra="ignore")
 
-
-# ---------------------------------------------------------------- validação dos formulários
 
 _EMAIL_LOCAL = r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u0080-￿-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u0080-￿-]+)*"
 _EMAIL_ROTULO = r"[A-Za-z0-9\u0080-￿](?:[A-Za-z0-9\u0080-￿-]*[A-Za-z0-9\u0080-￿])?"
@@ -46,7 +34,6 @@ _EMAIL = re.compile(rf"(?:{_EMAIL_LOCAL})@(?:{_EMAIL_ROTULO}(?:\.{_EMAIL_ROTULO}
 
 
 def email_valido(valor: str | None) -> bool:
-    """Mesma tolerância do @Email do Bean Validation: vazio é aceito; "a@b" também."""
     if not valor:
         return True
     if _EMAIL.fullmatch(valor) is None:
@@ -55,8 +42,6 @@ def email_valido(valor: str | None) -> bool:
 
 
 class Erros:
-    """Junta as mensagens por campo; vale a primeira regra que falhar em cada campo."""
-
     def __init__(self) -> None:
         self.mapa: dict[str, str] = {}
 
@@ -82,12 +67,7 @@ def _no_brasil(erros: Erros, latitude: float | None, longitude: float | None) ->
                  "Informe latitude e longitude juntas, ou nenhuma das duas.")
 
 
-# ---------------------------------------------------------------- pedidos
-
 class EnderecoRequest(Pedido):
-    """Endereço informado pelo usuário. Latitude e longitude são opcionais: quando informadas,
-    representam a posição confirmada pelo usuário no mapa."""
-
     cep: str | None = None
     rua: str | None = None
     numero: str | None = None
@@ -121,8 +101,6 @@ class EnderecoRequest(Pedido):
 
 
 class OcorrenciaRequest(Pedido):
-    """Relato de alagamento enviado por um usuário (entra como PENDENTE de validação)."""
-
     localizacao: str | None = None
     municipio: str | None = None
     estado: str | None = None
@@ -206,8 +184,6 @@ class LoginRequest(Pedido):
 
 
 class ValidacaoRequest(Pedido):
-    """Decisão da moderação sobre um relato: CONFIRMADA ou REJEITADA."""
-
     status: StatusValidacao | None = None
     observacao: str | None = None
 
@@ -220,11 +196,7 @@ class ValidacaoRequest(Pedido):
         return self
 
 
-# ---------------------------------------------------------------- respostas
-
 class UsuarioResponse(Esquema):
-    """Dados do usuário devolvidos ao front-end (nunca inclui o hash da senha)."""
-
     id: int
     nome: str
     email: str
@@ -232,8 +204,6 @@ class UsuarioResponse(Esquema):
 
 
 class CepResponse(Esquema):
-    """Dados do CEP para preenchimento automático do formulário (não contém coordenadas)."""
-
     cep: str | None
     rua: str | None
     bairro: str | None
@@ -254,8 +224,6 @@ class Candidato(Esquema):
 
 
 class LocalizacaoResponse(Esquema):
-    """Resultado da geocodificação para o usuário confirmar a posição no mapa antes da análise."""
-
     candidatos: list[Candidato]
     mensagem: str
 
@@ -303,8 +271,6 @@ class FonteResponse(Esquema):
 
 
 class OcorrenciaResponse(Esquema):
-    """Ocorrência para exibição pública. Não inclui nome nem contato de quem relatou."""
-
     id: int | None
     localizacao: str
     municipio: str | None
@@ -324,8 +290,6 @@ class OcorrenciaResponse(Esquema):
 
 
 class OcorrenciaAdminResponse(Esquema):
-    """Ocorrência para a moderação (inclui dados do relator, visíveis apenas a administradores)."""
-
     ocorrencia: OcorrenciaResponse
     status_validacao: str
     nome_relator: str | None
@@ -335,8 +299,6 @@ class OcorrenciaAdminResponse(Esquema):
 
 
 class PaginaResponse(Esquema, Generic[T]):
-    """Página de resultados com formato estável para o front-end."""
-
     itens: list[T]
     pagina: int
     tamanho: int
@@ -345,8 +307,6 @@ class PaginaResponse(Esquema, Generic[T]):
 
 
 class DimensaoResponse(Esquema):
-    """Resumo de uma dimensão da análise (risco mapeado, suscetibilidade ou histórico)."""
-
     categoria: str
     titulo: str
     descricao: str
@@ -362,9 +322,6 @@ class HistoricoMunicipalResponse(Esquema):
 
 
 class ConsultaResponse(Esquema):
-    """Resultado completo de uma consulta de risco. ``mapa``: geometrias reais (cursos d'água do
-    OSM, setores do SGB) registradas no momento da consulta."""
-
     id: uuid.UUID
     data_consulta: datetime
     endereco: EnderecoResponse
@@ -384,8 +341,6 @@ class ConsultaResponse(Esquema):
 
 
 class ConsultaResumo(Esquema):
-    """Item resumido para o histórico de consultas do usuário."""
-
     id: uuid.UUID
     data_consulta: datetime
     endereco: str
@@ -394,8 +349,6 @@ class ConsultaResumo(Esquema):
 
 
 class ImportacaoResultado(Esquema):
-    """Resumo de uma importação de registros oficiais."""
-
     arquivo: str
     linhas_lidas: int
     importados: int
@@ -407,10 +360,6 @@ class ImportacaoResultado(Esquema):
 
 
 class RiscoAgora(Esquema):
-    """``nivel``: BAIXO, ATENCAO, ALTO, MUITO_ALTO ou INDISPONIVEL; ``nivel_chuva``: 0 a 3 (limites
-    do INMET para chuvas intensas); ``suscetibilidade``: classificação da consulta usada no
-    cálculo; ``proximos_dias``: aviso de chuva forte prevista entre 24 e 72 h."""
-
     nivel: str
     rotulo: str
     nivel_chuva: int | None
@@ -453,10 +402,6 @@ class Vazao(Esquema):
 
 
 class SituacaoAtualResponse(Esquema):
-    """Situação ATUAL no ponto: chuva e vazão modeladas e o risco deste momento, que combina essas
-    medidas com a suscetibilidade do local. Não altera a classificação da consulta e não substitui
-    os alertas oficiais da Defesa Civil."""
-
     latitude: float
     longitude: float
     risco_agora: RiscoAgora
@@ -467,16 +412,12 @@ class SituacaoAtualResponse(Esquema):
 
 
 class Ponto(Esquema):
-    """Ponto com elevação do terreno (m), quando conhecida."""
-
     latitude: float
     longitude: float
     elevacao: float | None
 
 
 class Destino(Esquema):
-    """``ganho_elevacao``: diferença de altura em relação à partida (negativa se o destino é mais baixo)."""
-
     latitude: float
     longitude: float
     elevacao: float | None
@@ -492,9 +433,6 @@ class InstrucaoRota(Esquema):
 
 
 class Trajeto(Esquema):
-    """``coordenadas``: pontos [lat, lon] do caminho; ``desvio_areas_risco_aplicado``: se o cálculo
-    conseguiu evitar os setores de risco do SGB."""
-
     distancia_metros: float
     duracao_segundos: float
     coordenadas: list[tuple[float, float]]
@@ -504,9 +442,6 @@ class Trajeto(Esquema):
 
 
 class Perfil(Esquema):
-    """Perfil de elevação ao longo do caminho. ``amostras``: pares [distância desde o início (m),
-    elevação (m)]; ``ponto_mais_baixo``: [lat, lon] do trecho mais baixo."""
-
     elevacao_minima: float
     elevacao_maxima: float
     distancia_ponto_mais_baixo: float
@@ -515,8 +450,6 @@ class Perfil(Esquema):
 
 
 class SetorMapa(Esquema):
-    """Setor de risco hidrológico para desenhar no mapa (anéis de [lat, lon])."""
-
     numero: str | None
     grau: str | None
     tipologia: str | None
@@ -524,9 +457,6 @@ class SetorMapa(Esquema):
 
 
 class RotaSeguraResponse(Esquema):
-    """Rota sugerida até o destino escolhido pela pessoa, desviando de áreas de risco mapeadas.
-    ``status``: ROTA_ENCONTRADA ou ROTA_INDISPONIVEL (o serviço de rotas não traçou o caminho)."""
-
     status: str
     mensagem: str
     modo: str

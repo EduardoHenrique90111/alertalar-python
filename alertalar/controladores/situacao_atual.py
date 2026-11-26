@@ -1,5 +1,3 @@
-"""Chuva e vazão modeladas para o ponto e o risco deste momento (não altera a classificação da consulta)."""
-
 from __future__ import annotations
 
 import uuid

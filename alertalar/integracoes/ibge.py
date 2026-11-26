@@ -1,9 +1,3 @@
-"""Código IBGE (7 dígitos) do município, usado para cruzar o endereço com os registros oficiais.
-
-Duas fontes: a lista guardada no próprio sistema (:class:`MunicipiosIbge`) e a API de Localidades
-do IBGE (https://servicodados.ibge.gov.br/api/docs/localidades) para o que não estiver nela.
-"""
-
 from __future__ import annotations
 
 import gzip
@@ -47,14 +41,6 @@ class IbgeLocalidadesClient:
 
 
 class MunicipiosIbge:
-    """Códigos IBGE de município guardados no próprio sistema (sem depender da API do IBGE, que pode
-    ficar fora do ar ou não responder a servidores fora do Brasil).
-
-    A lista vem do Atlas Digital de Desastres no Brasil v1.1 (MIDR/Sedec), que traz o código IBGE
-    oficial de cada município com algum registro: 5.256 municípios, com as diferentes grafias do
-    nome que aparecem nos registros. Para município fora da lista o sistema ainda tenta a API do IBGE.
-    """
-
     def __init__(self, codigos: dict[str, str]):
         self._codigos = dict(codigos)
 
@@ -68,7 +54,7 @@ class MunicipiosIbge:
                         RECURSO_MUNICIPIOS)
             return cls(mapa)
         linhas = gzip.decompress(dados).decode("utf-8").splitlines()
-        for linha in linhas[1:]:  # a primeira é o cabeçalho
+        for linha in linhas[1:]:
             c = linha.split(";", 2)
             if len(c) == 3 and re.fullmatch(r"\d{7}", c[0]):
                 mapa.setdefault(chave(c[1], c[2]), c[0])
@@ -76,12 +62,10 @@ class MunicipiosIbge:
 
     @classmethod
     def vazio(cls) -> MunicipiosIbge:
-        """Lista vazia: força o uso da API do IBGE (útil em testes)."""
         return cls({})
 
     @classmethod
     def de(cls, linhas: list[tuple[str, str, str]]) -> MunicipiosIbge:
-        """Monta a lista a partir de linhas (código, UF, nome)."""
         mapa: dict[str, str] = {}
         for codigo, uf, nome in linhas:
             mapa.setdefault(chave(uf, nome), codigo)
@@ -97,6 +81,4 @@ class MunicipiosIbge:
 
 
 def chave(uf: str, nome: str) -> str:
-    """Simplifica o nome para comparar grafias diferentes: sem acentos, minúsculo e só letras e
-    números ("Herval D`Oeste", "Herval d'Oeste" e "HERVAL DOESTE" viram "hervaldoeste")."""
     return uf.strip().upper() + "|" + re.sub(r"[^a-z0-9]", "", txt.sem_acentos(nome).lower())

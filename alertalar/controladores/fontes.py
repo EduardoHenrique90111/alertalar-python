@@ -1,5 +1,3 @@
-"""Fontes de dados, com a situação real de cada integração e a data da última atualização."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Request

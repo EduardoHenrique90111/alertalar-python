@@ -1,7 +1,3 @@
-"""Base oficial embutida (Atlas Digital de Desastres no Brasil v1.1) e sua conversão: garante que o
-histórico municipal vem carregado e inclui as chuvas intensas, tipo em que estão registradas, por
-exemplo, as enchentes de maio de 2024 no Rio Grande do Sul."""
-
 import importlib
 import re
 from datetime import date

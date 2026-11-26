@@ -1,5 +1,3 @@
-"""Leitura de planilhas exportadas do S2iD / Atlas Digital (formato CSV)."""
-
 from datetime import date
 
 import pytest
@@ -28,7 +26,6 @@ RS-A-4304606-14110-20220110;RS;Canoas;4304606;10/01/2022;1.4.1.1.0;Estiagem
     assert primeiro.tipo is TipoEvento.INUNDACAO
     assert primeiro.data == date(2024, 5, 1)
     assert primeiro.codigo_ibge == "4304606"
-    # chuvas intensas também causam enchentes (ex.: RS, maio de 2024)
     assert r.registros[1].tipo is TipoEvento.CHUVA_INTENSA
     assert r.registros[2].municipio == "Porto Alegre"
     assert r.registros[2].tipo is TipoEvento.ALAGAMENTO

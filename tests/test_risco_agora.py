@@ -1,5 +1,3 @@
-"""Risco de agora: chuva do momento (limites do INMET) combinada com a suscetibilidade do local."""
-
 import pytest
 
 from alertalar.esquemas import Chuva, Vazao
@@ -8,7 +6,6 @@ from alertalar.servicos.analise import risco_agora
 
 
 def chuva(p24, p72, hora_p, f24, hora_f, dias2e3) -> Chuva:
-    """Últimas 24 h, últimas 72 h, maior hora passada, próximas 24 h, maior hora futura, maior 24 h entre 24 e 72 h."""
     return Chuva(disponivel=True, motivo=None, ultimas_24h_mm=p24, ultimas_72h_mm=p72,
                  maior_intensidade_horaria_ultimas_24h_mm=hora_p, proximas_24h_mm=f24, proximas_72h_mm=f24 + dias2e3,
                  maior_intensidade_horaria_proximas_24h_mm=hora_f, maior_24h_entre_24e72h_mm=dias2e3, fonte="teste")

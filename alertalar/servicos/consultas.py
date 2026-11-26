@@ -1,5 +1,3 @@
-"""Orquestra a consulta: endereço → coleta de dados → análise → gravação → resposta."""
-
 from __future__ import annotations
 
 import json
@@ -39,8 +37,6 @@ class ConsultaService:
         self.fontes = fontes
 
     def realizar(self, request: EnderecoRequest, usuario: Usuario | None) -> uuid.UUID:
-        """Realiza a consulta completa. As chamadas externas acontecem FORA de transação de banco,
-        para não prender conexões enquanto as APIs respondem."""
         endereco = self.enderecos.resolver_para_analise(request)
         contexto = self.coleta.coletar(endereco)
         resultado = self.analise.analisar(contexto)
@@ -100,7 +96,6 @@ class ConsultaService:
                 for c in self.consultas.do_usuario(usuario_id, 50)]
 
     def montar_dados_mapa(self, ctx: ContextoAnalise) -> str:
-        """Geometrias reais exibidas no mapa, recortadas ao entorno do ponto para limitar o tamanho."""
         p = ctx.parametros
         raiz: dict = {"ponto": {"lat": ctx.latitude, "lon": ctx.longitude},
                       "raios": {"cursosAgua": p.raio_cursos_agua_metros, "ocorrencias": p.raio_ocorrencias_metros,
@@ -180,14 +175,13 @@ def _avisos(e: Endereco) -> list[str]:
 
 
 def recortar(linha, lat: float, lon: float, limite_metros: float) -> list[list[tuple[float, float]]]:
-    """Mantém apenas os trechos da linha próximos ao ponto, quebrando onde a linha sai da área."""
     trechos = []
     atual: list = []
     for p in linha:
         if geo.distancia_metros(lat, lon, p[0], p[1]) <= limite_metros:
             atual.append(p)
         elif atual:
-            atual.append(p)  # inclui o ponto de saída para a linha não terminar "no ar"
+            atual.append(p)
             if len(atual) > 1:
                 trechos.append(atual)
             atual = []

@@ -1,5 +1,3 @@
-"""Validação de endereços, relatos e cadastro."""
-
 from datetime import date, timedelta
 
 import pytest

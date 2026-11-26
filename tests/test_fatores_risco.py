@@ -1,5 +1,3 @@
-"""Cada fator é uma regra independente, testada isoladamente."""
-
 from alertalar.modelos.enums import SituacaoFator, TipoEvento
 from alertalar.servicos.analise.fatores import (
     FatorElevacaoRelativa,
@@ -75,7 +73,6 @@ class TestSetores:
         assert "DENTRO" in a.explicacao
 
     def test_setor_proximo_pontua_sem_forcar(self):
-        # centro deslocado ~0,0025° (≈240 m); borda a ~140 m do ponto
         a = self.fator.avaliar(ContextoTeste.novo().setor("Alto", 0.0025, True).construir())
         assert a.pontuacao == 1
         assert not a.forca_alto

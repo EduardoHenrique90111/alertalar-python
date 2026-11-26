@@ -1,5 +1,3 @@
-"""Conexão com o banco numa variável só (DATABASE_URL, como o Neon mostra) e demais configurações."""
-
 from alertalar.config import Configuracoes, converter_database_url, montar_url_sqlalchemy
 
 
@@ -66,7 +64,7 @@ def test_python_m_alertalar_sobe_um_unico_servidor_na_porta_do_ambiente(monkeypa
     principal.main()
     assert chamada["port"] == 9123
     assert chamada["host"] == "0.0.0.0"
-    assert "workers" not in chamada  # sessões e limites ficam em memória: um processo só
+    assert "workers" not in chamada
     assert chamada["proxy_headers"] is False and chamada["server_header"] is False
     assert any(getattr(r, "path", None) == "/actuator/health" for r in chamada["app"].routes)
     chamada["app"].state.servicos.encerrar()
@@ -98,6 +96,5 @@ def test_database_url_errada_impede_o_inicio_com_mensagem_clara_e_sem_mostrar_a_
             Configuracoes.do_ambiente({"DATABASE_URL": valor})
         assert trecho in str(erro.value)
         assert "segredo" not in str(erro.value)
-    # DB_URL definida tem prioridade: a DATABASE_URL não é usada nem conferida
     assert Configuracoes.do_ambiente({"DATABASE_URL": "lixo", "DB_URL": "postgresql://h/db"}).origem_banco == "DB_URL"
     assert Configuracoes.do_ambiente({}).origem_banco.startswith("nenhuma variável")

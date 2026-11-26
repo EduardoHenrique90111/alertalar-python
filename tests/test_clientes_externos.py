@@ -1,7 +1,3 @@
-"""Comunicação HTTP real com as APIs externas, usando um servidor local que responde no mesmo formato
-das APIs verdadeiras. Testa parâmetros enviados, leitura das respostas e tratamento de falhas
-(HTTP 500/429, tempo esgotado, JSON inválido)."""
-
 import time
 from datetime import date, datetime, timedelta, timezone
 
@@ -35,7 +31,6 @@ def test_viacep_le_o_endereco_e_trata_cep_inexistente(servidor):
     assert dados.cidade == "Canoas"
     assert dados.codigo_ibge == "4304606"
     assert cliente.buscar("99999999") is None
-    # segunda consulta do mesmo CEP vem do cache
     cliente.buscar("92010000")
     assert servidor.contar("/ws/92010000/") == 1
 
@@ -131,7 +126,7 @@ def test_sgb_le_setor_com_geometria_e_identifica_risco_hidrologico(servidor):
     assert s.hidrologico
     assert s.grau_risco == "Muito alto"
     assert s.data_setorizacao == date(2024, 1, 1)
-    assert s.aneis[0][0][0] == pytest.approx(rs.LAT - 0.001, abs=1e-9)  # lon/lat → lat/lon
+    assert s.aneis[0][0][0] == pytest.approx(rs.LAT - 0.001, abs=1e-9)
     req = servidor.recebidas[0]
     assert req.parametro("geometryType") == "esriGeometryPoint"
     assert req.parametro("distance") == "300"
@@ -177,5 +172,4 @@ def test_falhas_http_json_invalido_e_tempo_esgotado_viram_integracao_externa(ser
     with pytest.raises(IntegracaoExterna) as lento:
         http.get_json("Fonte X", servidor.url("/lento"))
     assert lento.value.fonte == "Fonte X"
-    # nenhuma mensagem expõe detalhes internos (pilha de chamadas, classes)
     assert "Exception" not in str(e500.value) and "Error" not in str(lento.value)

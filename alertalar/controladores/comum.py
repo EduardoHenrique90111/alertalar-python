@@ -1,5 +1,3 @@
-"""Ajudantes compartilhados pelas rotas da API."""
-
 from __future__ import annotations
 
 import json
@@ -27,7 +25,6 @@ def seguranca(request: Request) -> ContextoSeguranca:
 
 
 async def usuario_atual(request: Request) -> Usuario | None:
-    """Usuário que entrou nesta sessão (se houver)."""
     email = seguranca(request).email
     if email is None:
         return None
@@ -42,7 +39,6 @@ async def usuario_obrigatorio(request: Request) -> Usuario:
 
 
 async def ler_corpo(request: Request, modelo: type[M]) -> M:
-    """Lê o corpo JSON. Formato errado, JSON malformado ou valor de tipo errado viram 400/415."""
     tipo = request.headers.get("content-type", "")
     if "json" not in tipo.lower():
         raise HTTPException(415)
@@ -56,8 +52,6 @@ async def ler_corpo(request: Request, modelo: type[M]) -> M:
 
 
 class Parametros:
-    """Confere os limites dos parâmetros da URL e junta as mensagens por parâmetro."""
-
     def __init__(self) -> None:
         self.erros: dict[str, str] = {}
 

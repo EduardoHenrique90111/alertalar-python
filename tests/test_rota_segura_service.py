@@ -1,5 +1,3 @@
-"""Rota segura até o destino escolhido: desvio das áreas de risco, conferência do caminho e andamento."""
-
 import math
 import threading
 from unittest.mock import ANY, Mock
@@ -18,7 +16,6 @@ from alertalar.servicos.rota_segura import RotaSeguraService
 from alertalar.util import geo
 
 LAT, LON = -29.92, -51.18
-# Destino padrão: 2 km a nordeste da partida
 DESTINO = geo.deslocar(LAT, LON, 2000, 30)
 
 
@@ -31,7 +28,6 @@ class Ctx:
         self.servico = RotaSeguraService(self.elevacao, self.sgb, self.roteador, self.fontes)
 
     def elevacoes(self, partida, destino, perfil) -> None:
-        """Altura da partida e do destino (pedido com 2 pontos) e, para o perfil do caminho, a função dada."""
         def responder(pontos):
             if len(pontos) == 2:
                 return [partida, destino]
@@ -61,7 +57,6 @@ def rota_ate(lat_d, lon_d) -> Rota:
 
 
 def setor(numero, lat, lon, meio_lado, hidrologico) -> SetorRisco:
-    """Quadrado de lado ~2·meio_lado metros centrado no ponto."""
     d_lat = meio_lado / 111_320.0
     d_lon = meio_lado / (111_320.0 * math.cos(math.radians(lat)))
     anel = ((lat - d_lat, lon - d_lon), (lat - d_lat, lon + d_lon), (lat + d_lat, lon + d_lon),
@@ -71,7 +66,6 @@ def setor(numero, lat, lon, meio_lado, hidrologico) -> SetorRisco:
 
 
 def rotas_com(ctx, *, com_desvio=None, sem_desvio=None) -> None:
-    """Roteador que responde de um jeito com áreas a evitar e de outro sem elas."""
     def responder(lat, lon, lat_d, lon_d, modo, evitar):
         acao = com_desvio if evitar else sem_desvio
         if isinstance(acao, Exception):
@@ -79,8 +73,6 @@ def rotas_com(ctx, *, com_desvio=None, sem_desvio=None) -> None:
         return rota_ate(lat_d, lon_d)
     ctx.roteador.rota.side_effect = responder
 
-
-# ------------------------------------------------------------------ caminho
 
 def test_rota_encontrada_com_altura_perfil_fontes_e_avisos_padrao(ctx):
     ctx.elevacoes(8.0, 15.0, lambda p: 8.0 + geo.distancia_metros(LAT, LON, p[0], p[1]) / 300)
@@ -108,9 +100,8 @@ def test_rota_encontrada_com_altura_perfil_fontes_e_avisos_padrao(ctx):
     assert len(r.avisos) == 2, "só os avisos padrão"
     ctx.fontes.registrar_acesso.assert_any_call("VALHALLA_ROTAS", ANY)
     ctx.roteador.rota.assert_called_once_with(LAT, LON, DESTINO[0], DESTINO[1], ModoRota.A_PE, [])
-    assert ctx.sgb.buscar_proximos.call_args.args[2] == 2500  # metade da distância + 1,5 km
+    assert ctx.sgb.buscar_proximos.call_args.args[2] == 2500
 
-    # a mesma consulta logo depois vem do cache
     ctx.calcular(ModoRota.A_PE)
     assert ctx.roteador.rota.call_count == 1
 
@@ -238,11 +229,7 @@ def test_distancias_e_tempos_em_portugues():
     assert rota_segura.formatar_tempo(3900) == "1 h 5 min"
 
 
-# ------------------------------------------------------------------ andamento (painel sobre o mapa)
-
 class Avisos(ProgressoRota):
-    """Guarda os avisos de andamento na ordem em que chegam."""
-
     def __init__(self) -> None:
         self.eventos = []
         self.desistiu = False
@@ -275,7 +262,6 @@ def test_andamento_cada_consulta_externa_e_avisada_ao_comecar_e_ao_terminar(ctx)
     r = ctx.calcular(ModoRota.A_PE, avisos)
 
     assert r.status == "ROTA_ENCONTRADA"
-    # primeiro o plano completo, com todas as etapas pendentes e na ordem da tela
     assert [e.etapa for e in avisos.eventos[:4]] == ["ALTURA", "SETORES", "CAMINHO", "PERFIL"]
     assert all(e.estado == "PENDENTE" for e in avisos.eventos[:4])
     for etapa in ("ALTURA", "SETORES", "CAMINHO", "PERFIL"):
@@ -291,7 +277,6 @@ def test_andamento_cada_consulta_externa_e_avisada_ao_comecar_e_ao_terminar(ctx)
     assert "Valhalla" in caminho.fonte
     assert all("SGB" in e.fonte for e in avisos.eventos if e.etapa == "SETORES")
 
-    # a mesma consulta logo depois vem do cache, sem etapas
     de_novo = Avisos()
     ctx.calcular(ModoRota.A_PE, de_novo)
     assert de_novo.eventos == []
@@ -312,7 +297,6 @@ def test_andamento_falhas_e_nova_tentativa_sem_desvio_aparecem_na_etapa_certa(ct
     assert avisos.de("PERFIL") == ["PENDENTE", "EM_ANDAMENTO", "FALHOU"], "perfil sem altura dos pontos"
     assert rota_segura.SEM_PERFIL in r.avisos
 
-    # o desvio falha e a segunda tentativa é avisada
     meio = geo.deslocar(LAT, LON, 1000, 30)
     ctx.elevacoes(10.0, 10.0, lambda p: 10.0)
     ctx.sgb.buscar_proximos.side_effect = None
@@ -350,7 +334,6 @@ def test_quem_desistiu_nao_gasta_chamadas_ao_roteador(ctx):
         ctx.calcular(ModoRota.A_PE, avisos)
     ctx.roteador.rota.assert_not_called()
 
-    # o cancelamento não fica no cache: quem pedir de novo recebe a rota
     ctx.roteador_encontra()
     assert ctx.calcular(ModoRota.A_PE).status == "ROTA_ENCONTRADA"
 

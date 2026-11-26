@@ -1,10 +1,3 @@
-"""Setores de risco geológico/hidrológico mapeados pelo Serviço Geológico do Brasil (SGB),
-consultados no serviço ArcGIS REST público do geoportal do SGB (operação "query").
-
-Campos conforme o serviço "Setorização de Risco": uf, munic, num_setor, local, tipolo_g1..5,
-tipolo_e1..5, cobrade_01..05, descricao, grau_risco, data_setor.
-"""
-
 from __future__ import annotations
 
 import re
@@ -23,8 +16,6 @@ Anel = tuple[tuple[float, float], ...]
 
 @dataclass(frozen=True, eq=False)
 class SetorRisco:
-    """Setor de risco do SGB; anéis em ``(lat, lon)``. Dois setores só são iguais se forem o mesmo objeto."""
-
     municipio: str | None
     uf: str | None
     numero_setor: str | None
@@ -47,7 +38,6 @@ class SgbSetoresRiscoClient:
              "spatialRel": "esriSpatialRelIntersects", "distance": int(raio_metros), "units": "esriSRUnit_Meter",
              "outFields": "*", "returnGeometry": "true", "outSR": 4326, "f": "json"}
         dados = self.http.get_json(FONTE, http.uri(self.url_camada + "/query", p))
-        # O ArcGIS pode responder HTTP 200 com um objeto "error"
         if isinstance(dados, dict) and "error" in dados:
             msg = http.texto(dados.get("error"), "message")
             raise IntegracaoExterna(FONTE, "O serviço do SGB recusou a consulta" + ("." if msg is None else ": " + msg))
@@ -57,7 +47,6 @@ class SgbSetoresRiscoClient:
 def interpretar(feature) -> SetorRisco:
     atributos = {}
     for nome, valor in (http.campo(feature, "attributes") or {}).items():
-        # Alguns serviços prefixam o nome do campo com a tabela (ex.: "gestao.risco.uf")
         curto = nome[nome.rfind(".") + 1:] if "." in nome else nome
         atributos[curto.lower()] = valor
     tipologias = []
@@ -82,7 +71,7 @@ def interpretar(feature) -> SetorRisco:
             x = http.numero(xy[0]) if isinstance(xy, list) and len(xy) > 0 else None
             y = http.numero(xy[1]) if isinstance(xy, list) and len(xy) > 1 else None
             if x is not None and y is not None:
-                pontos.append((y, x))  # o ArcGIS usa [x=lon, y=lat]
+                pontos.append((y, x))
         if len(pontos) >= 3:
             aneis.append(tuple(pontos))
     return SetorRisco(_texto(atributos, "munic"), _texto(atributos, "uf"), _texto(atributos, "num_setor"),
@@ -91,7 +80,6 @@ def interpretar(feature) -> SetorRisco:
 
 
 def eh_hidrologico(texto: str) -> bool:
-    """Inundação, enxurrada e alagamento (COBRADE 1.2.x - desastres hidrológicos)."""
     n = txt.normalizar(texto)
     return ("inunda" in n or "enxurr" in n or "alaga" in n or "hidrolog" in n
             or re.search(r"\b1\.2\.[123]", n) is not None)

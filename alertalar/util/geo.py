@@ -1,9 +1,3 @@
-"""Cálculos geográficos simples (sem dependências externas).
-
-Para distâncias de até alguns quilômetros usa-se uma projeção equiretangular local, com erro
-desprezível para esta escala. Pontos são pares ``(lat, lon)``; listas de pontos formam linhas.
-"""
-
 from __future__ import annotations
 
 import math
@@ -11,7 +5,6 @@ from collections.abc import Sequence
 
 RAIO_TERRA_METROS = 6_371_008.8
 
-# Limites aproximados do território brasileiro (inclui ilhas oceânicas)
 LAT_MIN_BRASIL = -34.0
 LAT_MAX_BRASIL = 5.5
 LON_MIN_BRASIL = -74.2
@@ -25,7 +18,6 @@ def dentro_do_brasil(lat: float, lon: float) -> bool:
 
 
 def distancia_metros(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Distância em metros entre dois pontos (fórmula de Haversine)."""
     d_lat = math.radians(lat2 - lat1)
     d_lon = math.radians(lon2 - lon1)
     a = (math.sin(d_lat / 2) ** 2
@@ -34,7 +26,6 @@ def distancia_metros(lat1: float, lon1: float, lat2: float, lon2: float) -> floa
 
 
 def ponto_mais_proximo(lat: float, lon: float, linha: Sequence[Ponto] | None) -> tuple[float, float, float] | None:
-    """Ponto da polilinha mais próximo do ponto de referência: ``(lat, lon, distância em metros)``."""
     if not linha:
         return None
     if len(linha) == 1:
@@ -44,7 +35,6 @@ def ponto_mais_proximo(lat: float, lon: float, linha: Sequence[Ponto] | None) ->
     melhor_dist = math.inf
     melhor = None
     for a, b in zip(linha, linha[1:]):
-        # coordenadas locais em metros, origem no ponto de referência
         ax = math.radians(a[1] - lon) * cos_lat * RAIO_TERRA_METROS
         ay = math.radians(a[0] - lat) * RAIO_TERRA_METROS
         bx = math.radians(b[1] - lon) * cos_lat * RAIO_TERRA_METROS
@@ -63,7 +53,6 @@ def ponto_mais_proximo(lat: float, lon: float, linha: Sequence[Ponto] | None) ->
 
 
 def dentro_do_poligono(lat: float, lon: float, anel: Sequence[Ponto] | None) -> bool:
-    """Teste ponto-em-polígono (ray casting). O anel é uma lista de ``(lat, lon)``."""
     if anel is None or len(anel) < 3:
         return False
     dentro = False
@@ -78,7 +67,6 @@ def dentro_do_poligono(lat: float, lon: float, anel: Sequence[Ponto] | None) -> 
 
 
 def deslocar(lat: float, lon: float, distancia_m: float, rumo_graus: float) -> tuple[float, float]:
-    """Ponto deslocado a partir de uma origem, dada a distância (m) e o rumo (graus a partir do norte)."""
     d = distancia_m / RAIO_TERRA_METROS
     rumo = math.radians(rumo_graus)
     lat1 = math.radians(lat)
@@ -90,7 +78,6 @@ def deslocar(lat: float, lon: float, distancia_m: float, rumo_graus: float) -> t
 
 
 def rumo(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Rumo inicial (graus a partir do norte, 0–360) de um ponto a outro."""
     f1 = math.radians(lat1)
     f2 = math.radians(lat2)
     dl = math.radians(lon2 - lon1)
@@ -103,21 +90,15 @@ _DIRECOES = ("norte", "nordeste", "leste", "sudeste", "sul", "sudoeste", "oeste"
 
 
 def direcao(rumo_graus: float) -> str:
-    """"norte", "nordeste", "leste"... para um rumo em graus."""
     angulo = ((rumo_graus % 360) + 360) % 360
     return _DIRECOES[math.floor(angulo / 45.0 + 0.5) % 8]
 
 
 def comprimento(linha: Sequence[Ponto]) -> float:
-    """Comprimento (m) de uma linha de pontos."""
     return sum(distancia_metros(a[0], a[1], b[0], b[1]) for a, b in zip(linha, linha[1:]))
 
 
 def amostrar(linha: Sequence[Ponto] | None, quantidade: int) -> list[tuple[float, float, float]]:
-    """Pontos igualmente espaçados ao longo da linha (inclui o primeiro e o último).
-
-    Devolve ``(lat, lon, distância desde o início)``.
-    """
     if not linha:
         return []
     total = comprimento(linha)
@@ -143,7 +124,6 @@ def amostrar(linha: Sequence[Ponto] | None, quantidade: int) -> list[tuple[float
 
 
 def retangulo_envolvente(lat: float, lon: float, raio_metros: float) -> tuple[float, float, float, float]:
-    """Retângulo ``(lat_min, lat_max, lon_min, lon_max)`` que envolve um círculo de raio em metros."""
     d_lat = math.degrees(raio_metros / RAIO_TERRA_METROS)
     d_lon = math.degrees(raio_metros / (RAIO_TERRA_METROS * math.cos(math.radians(lat))))
     return lat - d_lat, lat + d_lat, lon - d_lon, lon + d_lon

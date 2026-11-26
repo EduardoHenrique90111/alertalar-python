@@ -1,12 +1,3 @@
-"""Teste de ponta a ponta: sobe a aplicação inteira (FastAPI + Uvicorn + PostgreSQL real), com as APIs
-externas simuladas por um servidor HTTP local, e percorre os fluxos principais: consulta de risco,
-gravação, relato, moderação, importação oficial, situação atual, cadastro/login, rota segura e
-proteções de segurança.
-
-Executado somente quando ALERTALAR_TEST_DB_URL aponta para um banco PostgreSQL EXCLUSIVO PARA TESTES
-(os dados dele são apagados). Veja o README.
-"""
-
 from __future__ import annotations
 
 import json
@@ -34,11 +25,9 @@ ADMIN_SENHA = "SenhaAdmin2026"
 
 
 class Estado:
-    """Respostas que os testes trocam durante a execução."""
-
     sgb = rs.sgb_sem_setores()
     nominatim = rs.nominatim_numero()
-    status_nominatim = 200  # 429 simula o limite de pedidos do Nominatim público
+    status_nominatim = 200
 
 
 def _rotas_falsas(apis: ServidorHttpFalso) -> None:
@@ -97,8 +86,6 @@ def ambiente():
 
     with engine.begin() as cx:
         historico_oficial = cx.execute(text("SELECT count(*) FROM historico_migracoes WHERE versao = 4")).scalar() == 1
-        # A migração V4 carrega a base oficial do Atlas (27 mil registros) num banco novo; os testes abaixo
-        # partem de um banco sem ocorrências para conferir contagens exatas (o administrador é mantido).
         cx.execute(text("TRUNCATE consulta_fator, consulta, ocorrencia RESTART IDENTITY CASCADE"))
 
     yield {"base": f"http://127.0.0.1:{porta}", "apis": apis, "historico_oficial": historico_oficial}
@@ -111,8 +98,6 @@ def ambiente():
 
 
 class Cliente:
-    """Navegador mínimo: guarda cookies de sessão e envia o token CSRF como o front-end faz."""
-
     def __init__(self, base: str):
         self.base = base
         self.http = requests.Session()
@@ -149,7 +134,6 @@ def fator(consulta: dict, codigo: str) -> dict:
 
 
 def ler_eventos(corpo: str) -> list[tuple[str, str]]:
-    """Eventos de um corpo text/event-stream: (nome, dados)."""
     eventos = []
     for bloco in re.split(r"\r?\n\r?\n", corpo):
         nome, dados = "message", []
@@ -169,8 +153,6 @@ def corpo_consulta(com_coordenadas: bool = True, numero: str = "100") -> dict:
         corpo.update(latitude=rs.LAT, longitude=rs.LON)
     return corpo
 
-
-# ------------------------------------------------------------------ testes (na ordem)
 
 def test_01_fontes_de_dados_cadastradas_pela_migracao(ambiente):
     fontes = Cliente(ambiente["base"]).get_json("/api/fontes")
@@ -295,7 +277,6 @@ def test_08_situacao_atual_traz_chuva_e_vazao_separadas_da_classificacao(ambient
     assert s["chuva"]["ultimas24hMm"] > 0
     assert s["vazao"]["tendencia"] == "SUBINDO"
     assert "40199" in json.dumps(s["avisos"])
-    # 2 mm/h nas últimas horas simuladas = 48 mm em 24 h: perigo potencial (nível 1)
     assert s["riscoAgora"]["nivelChuva"] == 1, s
     assert s["riscoAgora"]["nivel"] == "ATENCAO", "sem consulta: suscetibilidade moderada"
     assert "INMET" in s["riscoAgora"]["criterio"]
@@ -353,7 +334,6 @@ def test_12_rota_segura_destino_obrigatorio_e_validacao_dos_parametros(ambiente)
     assert "escolhido" not in r["destino"]
     assert apis.contar("/valhalla/route") - antes == 1
 
-    # O destino é obrigatório: sem ele (ou incompleto), resposta 400 com a explicação
     sem_destino = c.enviar("GET", "/api/rotas/segura?lat=-29.92&lon=-51.18")
     assert sem_destino.status_code == 400
     assert "Informe o destino" in sem_destino.json()["detail"]
@@ -388,7 +368,6 @@ def test_13_rota_segura_com_andamento_em_tempo_real(ambiente):
     assert rota["status"] == "ROTA_ENCONTRADA"
     assert rota["modo"] == "CARRO"
 
-    # Parâmetros inválidos: recusados antes do andamento, com a resposta de erro comum da API
     fora = requests.get(f"{base}/api/rotas/segura/progresso?lat=40.7&lon=-74.0&destLat=40.71&destLon=-74.0",
                         headers=cabecalhos, timeout=30)
     assert fora.status_code == 400
@@ -430,7 +409,6 @@ def test_15_site_e_descricao_da_api_servidos_pelo_mesmo_servidor(ambiente):
     descricao = c.get_json("/api/openapi.json")
     assert {"/api/consultas", "/api/consultas/{id_consulta}", "/api/rotas/segura/progresso",
             "/api/admin/importacoes/registros-oficiais"} <= set(descricao["paths"])
-    # Sem a página interativa, que dependeria de scripts de uma CDN
     assert c.enviar("GET", "/api/docs").status_code == 404
 
 
@@ -447,7 +425,6 @@ def test_20_nominatim_no_limite_o_endereco_e_encontrado_pelo_photon(ambiente):
         assert melhor["suficienteParaAnalise"]
         assert apis.contar("/nominatim/search") - antes == 1, "uma recusa e o Nominatim entra em pausa"
 
-        # Durante a pausa, a consulta completa também funciona, sem insistir no Nominatim
         consulta = c.enviar("POST", "/api/consultas", corpo_consulta(False, "220"), csrf=True)
         assert consulta.status_code == 201, consulta.text
         assert consulta.json()["endereco"]["precisao"] == "NUMERO"
@@ -471,13 +448,11 @@ def test_21_moderacao_so_relatos_mais_recente_primeiro_com_busca_e_rejeicao(ambi
     admin.enviar("PATCH", f"/api/admin/ocorrencias/{id_relato}/validacao", {"status": "CONFIRMADA"}, csrf=True)
     publicas_antes = anonimo.get_json("/api/ocorrencias")["total"]
 
-    # Os registros oficiais (importados no teste anterior) não aparecem na moderação
     confirmados = admin.get_json("/api/admin/ocorrencias?status=CONFIRMADA")
     assert confirmados["total"] == 2, confirmados
     assert all(item["ocorrencia"]["origem"] == "RELATO_USUARIO" for item in confirmados["itens"])
     assert confirmados["itens"][0]["ocorrencia"]["id"] == id_relato, "o mais recente primeiro"
 
-    # Busca por rua (com acento), por contato do relator e com curinga digitado
     por_rua = admin.get_json("/api/admin/ocorrencias?status=CONFIRMADA&busca=" + quote("dom JOÃO becker"))
     assert por_rua["total"] == 1, por_rua
     assert por_rua["itens"][0]["ocorrencia"]["id"] == id_relato
@@ -486,14 +461,12 @@ def test_21_moderacao_so_relatos_mais_recente_primeiro_com_busca_e_rejeicao(ambi
     assert admin.get_json("/api/admin/ocorrencias?status=CONFIRMADA&busca=_")["total"] == 0, "_ é texto"
     assert admin.enviar("GET", "/api/admin/ocorrencias?busca=" + "x" * 101).status_code == 400
 
-    # Confirmado por engano: rejeitar tira da lista pública
     rejeitado = admin.enviar("PATCH", f"/api/admin/ocorrencias/{id_relato}/validacao",
                              {"status": "REJEITADA", "observacao": "teste"}, csrf=True)
     assert rejeitado.status_code == 200, rejeitado.text
     assert anonimo.get_json("/api/ocorrencias")["total"] == publicas_antes - 1
     assert admin.get_json("/api/admin/ocorrencias?status=REJEITADA")["total"] == 1
 
-    # Usuário comum não entra na moderação
     comum = Cliente(base)
     comum.enviar("POST", "/api/auth/registro", {"nome": "Bia", "email": "bia@exemplo.com", "senha": "senha1234"},
                  csrf=True)

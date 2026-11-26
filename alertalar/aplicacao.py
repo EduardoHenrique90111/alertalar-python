@@ -1,5 +1,3 @@
-"""Criação da aplicação web (FastAPI): rotas da API, site estático, segurança e inicialização."""
-
 from __future__ import annotations
 
 import logging
@@ -23,7 +21,6 @@ log = logging.getLogger("alertalar")
 
 
 def localizar_frontend(config: Configuracoes) -> Path | None:
-    """Pasta do site: ALERTALAR_FRONTEND, ./frontend, ../frontend ou a que acompanha o código."""
     candidatas = [config.pasta_frontend, Path("frontend"), Path("../frontend"),
                   Path(__file__).resolve().parent.parent / "frontend"]
     for pasta in candidatas:
@@ -51,14 +48,12 @@ def criar_app(config: Configuracoes | None = None, servicos: container.Servicos 
                 log.info("Migrações aplicadas: %s", ", ".join(f"V{v}" for v in aplicadas))
         container.criar_admin_inicial(s)
         yield
-        if servicos is None:  # quem recebeu os serviços prontos (ex.: testes) cuida de encerrá-los
+        if servicos is None:
             s.encerrar()
 
     app = FastAPI(title="AlertaLar", version="1.0",
                   description="Consulta de riscos de enchentes e alagamentos a partir de dados públicos.",
                   lifespan=ciclo_de_vida, openapi_url="/api/openapi.json",
-                  # Sem a página interativa (/docs): ela carrega scripts de uma CDN, o que a política de
-                  # segurança de conteúdo do site não permite. A descrição da API fica em /api/openapi.json.
                   docs_url=None, redoc_url=None)
     app.state.servicos = servicos or container.montar(config)
     registrar_tratadores(app)
@@ -72,7 +67,7 @@ def criar_app(config: Configuracoes | None = None, servicos: container.Servicos 
             with app.state.servicos.engine.connect() as conexao:
                 conexao.execute(text("SELECT 1"))
             return {"status": "UP"}
-        except Exception:  # noqa: BLE001
+        except Exception:
             return JSONResponse({"status": "DOWN"}, status_code=503)
 
     pasta = localizar_frontend(config)
@@ -84,6 +79,5 @@ def criar_app(config: Configuracoes | None = None, servicos: container.Servicos 
     app.add_middleware(MiddlewareSeguranca, config=config, armazem=ArmazemSessoes(),
                        limitador=limitador or LimitadorRequisicoes())
     if config.confiar_proxy:
-        # Atrás de proxy reverso (Render, Nginx...): IP e protocolo reais vêm de X-Forwarded-*
         app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
     return app

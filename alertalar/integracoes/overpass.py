@@ -1,7 +1,3 @@
-"""Rios, córregos, canais e corpos d'água do OpenStreetMap próximos a um ponto, pela Overpass API
-(https://wiki.openstreetmap.org/wiki/Overpass_API). Os dados retornados são geometrias reais do
-OSM; nada é estimado ou inventado."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,20 +7,11 @@ from alertalar.integracoes.http import ClienteHttpExterno
 
 FONTE = "OpenStreetMap (Overpass API)"
 
-# Cursos d'água de maior porte (canal principal de drenagem)
 PRINCIPAIS = frozenset({"river", "canal", "tidal_channel", "water", "riverbank"})
 
 
 @dataclass(frozen=True)
 class CursoDagua:
-    """Curso ou corpo d'água do OSM.
-
-    ``tipo``: valor da tag waterway (river, stream, canal, drain, ditch) ou "water" para corpos
-    d'água; ``subtipo``: valor da tag water (river, lake, reservoir...), quando houver;
-    ``principal``: rios, canais e corpos d'água (córregos, valas e drenos não são);
-    ``partes``: uma ou mais linhas de coordenadas ``(lat, lon)``.
-    """
-
     osm_id: int
     tipo: str
     subtipo: str | None

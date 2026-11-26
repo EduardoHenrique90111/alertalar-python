@@ -1,6 +1,3 @@
-"""Moderação de relatos e importação de dados oficiais. Restrito ao papel ADMIN (o middleware de
-segurança barra quem não é administrador antes de chegar aqui)."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
@@ -40,7 +37,6 @@ async def validar(id_ocorrencia: int, request: Request):
 
 @rotas.post("/importacoes/registros-oficiais", response_model=ImportacaoResultado)
 async def importar(request: Request):
-    """Importa a planilha CSV de registros oficiais exportada do S2iD / Atlas Digital."""
     if int(request.headers.get("content-length") or 0) > TAMANHO_MAXIMO_ARQUIVO + 64 * 1024:
         raise HTTPException(413)
     if "multipart/form-data" not in request.headers.get("content-type", ""):

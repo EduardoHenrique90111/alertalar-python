@@ -1,6 +1,3 @@
-"""Monta os clientes externos, repositórios e serviços a partir das configurações (o papel que os
-@Bean do Spring tinham na versão em Java)."""
-
 from __future__ import annotations
 
 import logging
@@ -61,7 +58,6 @@ class Servicos:
     importacao: ImportacaoService
     situacao_atual: SituacaoAtualService
     rotas: RotaSeguraService
-    # Cálculos de rota acompanhados pela tela (um por pessoa esperando)
     executor_rotas: ThreadPoolExecutor
 
     def encerrar(self) -> None:
@@ -81,7 +77,6 @@ def montar(config: Configuracoes, engine: Engine | None = None, municipios: Muni
     via_cep = ViaCepClient(http, i.viacep_url)
     nominatim = NominatimClient(http, i.nominatim_url, config.contato_email,
                                 LimitadorIntervalo(i.nominatim_intervalo_minimo))
-    # Reserva do Nominatim (mesmos dados do OpenStreetMap, outro servidor)
     photon = PhotonClient(http, i.photon_url, LimitadorIntervalo(i.photon_intervalo_minimo))
     ibge = IbgeLocalidadesClient(http, i.ibge_url)
     overpass = OverpassClient(http, i.overpass_url)
@@ -112,8 +107,6 @@ def montar(config: Configuracoes, engine: Engine | None = None, municipios: Muni
 
 
 def criar_admin_inicial(servicos: Servicos) -> None:
-    """Cria o primeiro administrador a partir de ALERTALAR_ADMIN_EMAIL e ALERTALAR_ADMIN_SENHA.
-    Não existe senha padrão embutida no código."""
     admin = servicos.config.admin
     if txt.vazio(admin.email) or txt.vazio(admin.senha):
         log.info("Nenhum administrador configurado (ALERTALAR_ADMIN_EMAIL / ALERTALAR_ADMIN_SENHA). "

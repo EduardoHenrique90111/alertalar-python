@@ -1,5 +1,3 @@
-"""Geocodificação e validação de endereços (APIs externas simuladas com unittest.mock)."""
-
 from unittest.mock import Mock
 
 import pytest

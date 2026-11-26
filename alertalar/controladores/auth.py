@@ -1,6 +1,3 @@
-"""Cadastro, login (sessão) e dados do usuário logado. A saída (POST /api/auth/logout) é tratada
-pelo middleware de segurança."""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Request, Response
@@ -17,7 +14,6 @@ rotas = APIRouter(prefix="/api/auth", tags=["autenticação"])
 
 @rotas.get("/csrf")
 def csrf() -> dict:
-    """Garante que o cookie XSRF-TOKEN exista antes do primeiro POST do front-end."""
     return {"headerName": CABECALHO_CSRF, "parameterName": "_csrf"}
 
 

@@ -1,13 +1,3 @@
-"""Migrações do banco, aplicadas em ordem ao iniciar a aplicação.
-
-Cada arquivo ``V<número>__<descrição>.sql`` (ou ``.py``, com uma função ``migrar(conexao)``) roda
-uma única vez, dentro de uma transação, e fica registrado na tabela ``historico_migracoes``. Para
-mudar a estrutura, crie um arquivo com o próximo número (nunca altere uma migração já aplicada).
-
-Se o banco foi criado pela versão em Java (Flyway), as versões já registradas na tabela
-``flyway_schema_history`` são aproveitadas: as duas versões podem usar o mesmo banco.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -52,10 +42,8 @@ def disponiveis() -> list[Migracao]:
 
 
 def aplicar(engine: Engine) -> list[int]:
-    """Aplica as migrações pendentes e devolve as versões aplicadas agora."""
     aplicadas_agora = []
     with engine.begin() as conexao:
-        # Uma instância por vez (ex.: duas réplicas iniciando juntas)
         conexao.execute(text("SELECT pg_advisory_xact_lock(4627119)"))
         _criar_tabela(conexao)
         ja_aplicadas = _versoes_aplicadas(conexao)
@@ -68,7 +56,6 @@ def aplicar(engine: Engine) -> list[int]:
                 continue
             log.info("Aplicando migração V%d (%s)", migracao.versao, migracao.descricao)
             if migracao.tipo == "sql":
-                # Cursor do driver: um arquivo pode ter vários comandos separados por ";"
                 with conexao.connection.cursor() as cursor:
                     cursor.execute(migracao.conteudo().decode("utf-8"))
             else:
@@ -90,7 +77,6 @@ def _criar_tabela(conexao: Connection) -> None:
             soma         VARCHAR(64),
             aplicada_em  TIMESTAMPTZ NOT NULL DEFAULT now()
         )"""))
-    # Banco criado pela versão em Java: registra as versões que o Flyway já aplicou
     flyway = conexao.execute(text("SELECT to_regclass('flyway_schema_history') IS NOT NULL")).scalar()
     if flyway:
         conexao.execute(text(f"""

@@ -1,15 +1,3 @@
-"""Segurança da aplicação:
-
-- sessão com cookie HttpOnly + proteção CSRF (token no cookie XSRF-TOKEN, enviado no cabeçalho
-  X-XSRF-TOKEN pelo front-end);
-- rotas /api/admin/** restritas ao papel ADMIN e /api/consultas/minhas a quem entrou;
-- cabeçalhos: Content-Security-Policy, X-Frame-Options, Referrer-Policy, Permissions-Policy;
-- limite de requisições por IP nas rotas sensíveis;
-- CORS: por padrão só a própria origem (origens extras em ALERTALAR_CORS_ORIGENS).
-
-Tudo isso fica num middleware ASGI único, que roda antes das rotas da API e dos arquivos do site.
-"""
-
 from __future__ import annotations
 
 import hmac
@@ -31,7 +19,6 @@ CABECALHO_CSRF = "X-XSRF-TOKEN"
 METODOS_SEGUROS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 CHAVE_ESCOPO = "alertalar.seguranca"
 
-# Somente recursos próprios + blocos do mapa do OpenStreetMap. Sem scripts ou estilos inline.
 CSP = "; ".join((
     "default-src 'self'",
     "script-src 'self'",
@@ -46,8 +33,6 @@ CSP = "; ".join((
 ))
 
 
-# ---------------------------------------------------------------- sessões
-
 @dataclass
 class Sessao:
     id: str
@@ -57,9 +42,6 @@ class Sessao:
 
 
 class ArmazemSessoes:
-    """Sessões em memória (como as da versão em Java). Expiram após 60 minutos sem uso; reiniciar
-    o servidor encerra todas."""
-
     def __init__(self, duracao_segundos: float = 3600, relogio: Callable[[], float] = time.monotonic):
         self.duracao = duracao_segundos
         self._relogio = relogio
@@ -102,13 +84,11 @@ class ArmazemSessoes:
 
 
 class ContextoSeguranca:
-    """Situação de segurança da requisição atual, guardada no escopo ASGI para as rotas."""
-
     def __init__(self, armazem: ArmazemSessoes, sessao: Sessao | None, token_csrf: str | None):
         self._armazem = armazem
         self.sessao = sessao
         self.token_csrf = token_csrf
-        self.cookie_sessao: str | None = None  # novo valor do cookie ("" apaga)
+        self.cookie_sessao: str | None = None
         self.cookie_csrf: str | None = None
 
     @property
@@ -120,7 +100,6 @@ class ContextoSeguranca:
         return None if self.sessao is None else self.sessao.papel
 
     def autenticar(self, email: str, papel: str) -> None:
-        """Proteção contra fixação de sessão: novo identificador e novo token CSRF após entrar."""
         if self.sessao is not None:
             self._armazem.remover(self.sessao.id)
         self.sessao = self._armazem.criar(email, papel)
@@ -139,12 +118,7 @@ def novo_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-# ---------------------------------------------------------------- limite de requisições
-
 class LimitadorRequisicoes:
-    """Limite de requisições por chave (ex.: IP + rota) em janela deslizante, em memória.
-    Para várias instâncias do servidor, troque por um limitador distribuído (ex.: Redis)."""
-
     MAXIMO_CHAVES = 50_000
 
     def __init__(self, relogio: Callable[[], float] = time.time):
@@ -153,7 +127,6 @@ class LimitadorRequisicoes:
         self._trava = threading.Lock()
 
     def permitir(self, chave: str, limite: int, janela_segundos: float) -> bool:
-        """True se a requisição pode prosseguir."""
         agora = self._relogio()
         inicio = agora - janela_segundos
         with self._trava:
@@ -177,7 +150,6 @@ class Regra:
 
 
 def regra_para(metodo: str, caminho: str, limites: Limites) -> Regra | None:
-    """Rotas que consomem APIs externas ou recebem formulários têm limite por IP."""
     if not caminho.startswith("/api/"):
         return None
     post = metodo == "POST"
@@ -195,8 +167,6 @@ def regra_para(metodo: str, caminho: str, limites: Limites) -> Regra | None:
         return Regra("situacao", 30, 60)
     return None
 
-
-# ---------------------------------------------------------------- middleware
 
 def _problema(status: int, titulo: str, detalhe: str) -> bytes:
     return json.dumps({"type": "about:blank", "title": titulo, "status": status, "detail": detalhe},
@@ -233,7 +203,7 @@ class MiddlewareSeguranca:
         cookies = SimpleCookie()
         try:
             cookies.load(cabecalhos.get("cookie", ""))
-        except Exception:  # noqa: BLE001 - cookie malformado é ignorado
+        except Exception:
             pass
         https = scope.get("scheme") == "https"
         seguro = self.config.cookie_seguro or https
@@ -247,7 +217,6 @@ class MiddlewareSeguranca:
             await send({"type": "http.response.start", "status": status, "headers": headers})
             await send({"type": "http.response.body", "body": corpo})
 
-        # CORS: só a própria origem, além das liberadas na configuração
         origem = cabecalhos.get("origin")
         if caminho.startswith("/api/") and origem and not self._mesma_origem(origem, cabecalhos):
             if origem.rstrip("/") not in self.origens:
@@ -266,7 +235,7 @@ class MiddlewareSeguranca:
         token = cookies[COOKIE_CSRF].value if COOKIE_CSRF in cookies else None
         contexto = ContextoSeguranca(self.armazem, sessao, token or None)
         if id_sessao and sessao is None:
-            contexto.cookie_sessao = ""  # sessão expirada: apaga o cookie velho
+            contexto.cookie_sessao = ""
         if not token:
             contexto.cookie_csrf = novo_token()
         scope[CHAVE_ESCOPO] = contexto
@@ -279,7 +248,6 @@ class MiddlewareSeguranca:
                 lista.append((b"set-cookie", _cookie(COOKIE_CSRF, contexto.cookie_csrf, seguro, False)))
             return lista
 
-        # CSRF: toda requisição que altera dados precisa repetir no cabeçalho o token do cookie
         if metodo not in METODOS_SEGUROS:
             enviado = cabecalhos.get(CABECALHO_CSRF.lower())
             if not token or not enviado or not hmac.compare_digest(token.encode(), enviado.encode()):
@@ -327,7 +295,7 @@ class MiddlewareSeguranca:
 
         try:
             await self.app(scope, receive, enviar)
-        except Exception as ex:  # noqa: BLE001 - erro não previsto vira 500 sem detalhes internos
+        except Exception as ex:
             if iniciada:
                 raise
             corpo = json.dumps(corpo_erro_inesperado(ex, caminho), ensure_ascii=False).encode("utf-8")

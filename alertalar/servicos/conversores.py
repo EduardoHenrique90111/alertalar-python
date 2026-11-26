@@ -1,5 +1,3 @@
-"""Conversão das entidades do banco para as respostas da API."""
-
 from __future__ import annotations
 
 from alertalar.esquemas import (
@@ -40,7 +38,6 @@ def fonte(f: FonteDados) -> FonteResponse:
 
 
 def ocorrencia(o: Ocorrencia, distancia_metros: float | None = None) -> OcorrenciaResponse:
-    """Ocorrência para exibição pública. Não inclui nome nem contato de quem relatou."""
     return OcorrenciaResponse(
         id=o.id, localizacao=o.localizacao, municipio=o.municipio, estado=o.estado, data_ocorrencia=o.data_ocorrencia,
         descricao=o.descricao, tipo_evento=o.tipo_evento.value, tipo_evento_rotulo=o.tipo_evento.rotulo,

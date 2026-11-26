@@ -1,5 +1,3 @@
-"""As 27 unidades federativas do Brasil."""
-
 from __future__ import annotations
 
 from enum import Enum
@@ -48,7 +46,6 @@ class UnidadeFederativa(Enum):
 
     @classmethod
     def de_texto(cls, valor: str | None) -> UnidadeFederativa | None:
-        """Aceita sigla ("RS") ou nome ("Rio Grande do Sul", com ou sem acento)."""
         por_sigla = cls.da_sigla(valor)
         if por_sigla is not None:
             return por_sigla
@@ -60,5 +57,4 @@ SIGLAS = frozenset(UnidadeFederativa.__members__)
 
 
 def sigla_valida(valor: str | None) -> bool:
-    """Mesma regra da validação dos formulários: a sigla exata, em maiúsculas ou minúsculas."""
     return valor is not None and valor.upper() in SIGLAS

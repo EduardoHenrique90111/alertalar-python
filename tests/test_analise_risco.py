@@ -1,5 +1,3 @@
-"""Classificação de risco consolidada a partir dos fatores reais."""
-
 from alertalar.modelos.enums import ClassificacaoRisco
 from alertalar.servicos.analise.analise_risco import AnaliseRiscoService
 from alertalar.servicos.analise.fatores import fatores_padrao
@@ -24,7 +22,6 @@ def test_ponto_alto_longe_de_agua_resulta_em_baixo_risco_com_ressalva():
 
 def test_fatores_intermediarios_resultam_em_risco_moderado():
     r = servico.analisar(ContextoTeste.novo().rio_a(350).elevacao(12.0, 5.0, 350.0, 12.0).sem_setores().construir())
-    # proximidade 2, elevação 1 (desnível 7 m) → média 1,5
     assert r.classificacao == ClassificacaoRisco.MODERADO
     assert "Média ponderada dos 2 fator(es) avaliado(s): 1.50 numa escala de 0 a 3" in r.justificativa
 
@@ -49,7 +46,6 @@ def test_dentro_de_setor_muito_alto_do_sgb_e_alto_risco_mesmo_com_fontes_fora_do
 def test_tres_ocorrencias_confirmadas_impedem_baixo_risco():
     r = servico.analisar(ContextoTeste.novo().sem_cursos_dagua().elevacao(60.0, None, None, 58.0)
                          .ocorrencias(3, 200).construir())
-    # média: (0*2 + 0*2 + 3*2) / 6 = 1,0 → já moderado; o mínimo garante que não seja baixo
     assert r.classificacao != ClassificacaoRisco.BAIXO
 
 

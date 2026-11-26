@@ -1,5 +1,3 @@
-"""Rota segura da partida (localização atual, endereço ou ponto no mapa) até o destino escolhido."""
-
 from __future__ import annotations
 
 import asyncio
@@ -20,8 +18,6 @@ log = logging.getLogger("alertalar.rota")
 
 rotas = APIRouter(prefix="/api/rotas", tags=["rota segura"])
 
-# Tempo máximo do cálculo acompanhado. Cada serviço externo tem até 25 s para responder e o roteador
-# pode ser chamado mais de uma vez; acima disso a pessoa recebe um aviso para tentar de novo.
 TEMPO_MAXIMO_SEGUNDOS = 180
 
 
@@ -35,15 +31,11 @@ def _conferir(lat: float, lon: float, dest_lat: float | None, dest_lon: float | 
 @rotas.get("/segura", response_model=RotaSeguraResponse)
 def segura(request: Request, lat: float, lon: float, modo: ModoRota = ModoRota.A_PE, destLat: float | None = None,
            destLon: float | None = None):
-    """Ex.: GET /api/rotas/segura?lat=-29.92&lon=-51.18&destLat=-29.91&destLon=-51.17&modo=A_PE"""
     _conferir(lat, lon, destLat, destLon)
     return servicos(request).rotas.calcular(lat, lon, destLat, destLon, modo)
 
 
 class _Envio(ProgressoRota):
-    """Passa os eventos do cálculo (que roda numa thread) para a resposta; se a pessoa sair da
-    página, o cálculo para antes da próxima consulta externa."""
-
     def __init__(self, loop: asyncio.AbstractEventLoop, fila: asyncio.Queue):
         self._loop = loop
         self._fila = fila
@@ -73,15 +65,6 @@ def _evento(nome: str, dados) -> str:
 @rotas.get("/segura/progresso")
 async def segura_com_progresso(request: Request, lat: float, lon: float, modo: ModoRota = ModoRota.A_PE,
                                destLat: float | None = None, destLon: float | None = None):
-    """A mesma rota segura, com o andamento de cada consulta externa enviado à tela enquanto o caminho
-    é calculado (Server-Sent Events). Eventos:
-
-    - ``etapa``: andamento (altura, áreas de risco, caminho, perfil);
-    - ``resultado``: a resposta, igual à de ``/api/rotas/segura``;
-    - ``erro``: ``{status, title, detail}``, no formato dos demais erros da API.
-
-    Parâmetros inválidos são recusados antes do andamento começar, com a resposta de erro comum.
-    """
     _conferir(lat, lon, destLat, destLon)
     s = servicos(request)
     s.rotas.validar(lat, lon, destLat, destLon)
@@ -99,7 +82,7 @@ async def segura_com_progresso(request: Request, lat: float, lon: float, modo: M
             envio.erro(422, "Operação não permitida", str(e))
         except IntegracaoExterna as e:
             envio.erro(503, "Serviço externo indisponível", str(e))
-        except Exception:  # noqa: BLE001
+        except Exception:
             log.exception("Erro inesperado ao calcular a rota segura")
             envio.erro(500, "Erro interno", "Não foi possível calcular a rota agora. Tente novamente em instantes.")
         finally:
@@ -122,9 +105,7 @@ async def segura_com_progresso(request: Request, lat: float, lon: float, modo: M
                     return
                 yield _evento(nome, dados)
         finally:
-            # Página fechada, cálculo cancelado ou terminado
             envio.desistir()
 
-    # Pede aos proxies (ex.: Nginx) que repassem cada evento na hora, sem juntar tudo no fim
     return StreamingResponse(eventos(), media_type="text/event-stream",
                              headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"})

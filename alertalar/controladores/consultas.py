@@ -1,5 +1,3 @@
-"""Consultas de risco por endereço."""
-
 from __future__ import annotations
 
 import uuid
@@ -16,7 +14,6 @@ rotas = APIRouter(prefix="/api/consultas", tags=["consultas"])
 
 @rotas.post("", status_code=201, response_model=ConsultaResponse)
 async def consultar(request: Request):
-    """Realiza a consulta de risco para um endereço e grava o resultado."""
     endereco = (await ler_corpo(request, EnderecoRequest)).validar()
     usuario = await usuario_atual(request)
     s = servicos(request)
@@ -28,7 +25,6 @@ async def consultar(request: Request):
 
 @rotas.get("/minhas", response_model=list[ConsultaResumo])
 async def minhas(request: Request):
-    """Histórico de consultas do usuário logado."""
     usuario = await usuario_obrigatorio(request)
     return await run_in_threadpool(servicos(request).consultas.do_usuario, usuario.id)
 

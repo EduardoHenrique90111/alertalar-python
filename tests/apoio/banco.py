@@ -1,13 +1,3 @@
-"""Banco PostgreSQL dos testes de ponta a ponta.
-
-Os testes de ponta a ponta usam um PostgreSQL de verdade e só rodam quando ALERTALAR_TEST_DB_URL
-aponta para um banco EXCLUSIVO PARA TESTES (os dados dele são apagados). Exemplo:
-
-    ALERTALAR_TEST_DB_URL=postgresql://localhost:5432/alertalar_test
-    ALERTALAR_TEST_DB_USERNAME=alertalar
-    ALERTALAR_TEST_DB_PASSWORD=troque_esta_senha
-"""
-
 from __future__ import annotations
 
 import os

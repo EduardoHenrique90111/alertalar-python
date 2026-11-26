@@ -1,6 +1,3 @@
-"""Integração com o ViaCEP (https://viacep.com.br): logradouro, bairro, cidade, UF e código IBGE.
-O ViaCEP não fornece coordenadas geográficas."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,11 +23,9 @@ class ViaCepClient:
     def __init__(self, cliente: ClienteHttpExterno, url_base: str):
         self.http = cliente
         self.url_base = http.sem_barra_final(url_base)
-        # Guarda também os CEPs inexistentes: a tupla (None,) significa "não existe"
         self._cache: CacheTemporario[str, tuple[DadosCep | None]] = CacheTemporario(24 * 3600, 5_000)
 
     def buscar(self, cep: str | None) -> DadosCep | None:
-        """Dados do CEP (8 dígitos, com ou sem hífen), ou None se o CEP não existir."""
         digitos = txt.somente_digitos(cep)
         if len(digitos) != 8:
             return None
@@ -38,7 +33,6 @@ class ViaCepClient:
 
     def _consultar(self, digitos: str) -> DadosCep | None:
         dados = self.http.get_json(FONTE, f"{self.url_base}/{digitos}/json/")
-        # O ViaCEP responde {"erro": true} (ou "true") para CEPs inexistentes
         erro = http.texto(dados, "erro")
         if erro is not None and erro.lower() == "true":
             return None

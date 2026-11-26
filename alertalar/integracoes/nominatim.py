@@ -1,10 +1,3 @@
-"""Geocodificação com o Nominatim (OpenStreetMap).
-
-Respeita a política de uso do serviço público: User-Agent identificável, no máximo 1 requisição
-por segundo e cache dos resultados (o cache persistente fica na tabela endereco).
-Política: https://operations.osmfoundation.org/policies/nominatim/
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
@@ -19,9 +12,6 @@ FONTE = "Nominatim (OpenStreetMap)"
 
 @dataclass(frozen=True)
 class ResultadoGeocodificacao:
-    """Resultado de geocodificação. ``place_rank``: 30 = edificação/número; 26-27 = rua;
-    16-25 = bairro/localidade; abaixo disso = cidade ou região."""
-
     latitude: float
     longitude: float
     place_rank: int
@@ -48,7 +38,6 @@ class NominatimClient:
 
     def buscar_estruturado(self, rua: str, numero: str | None, cidade: str, uf: str | None,
                            limite: int) -> list[ResultadoGeocodificacao]:
-        """Busca estruturada (mais precisa que texto livre)."""
         p = self._parametros_base(limite)
         p["street"] = rua if txt.vazio(numero) else numero.strip() + " " + rua.strip()
         p["city"] = cidade
@@ -59,7 +48,6 @@ class NominatimClient:
         return self._executar(p)
 
     def buscar_texto(self, consulta: str, limite: int) -> list[ResultadoGeocodificacao]:
-        """Busca por texto livre (usada como segunda tentativa)."""
         p = self._parametros_base(limite)
         p["q"] = consulta
         return self._executar(p)

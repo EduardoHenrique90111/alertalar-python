@@ -1,6 +1,3 @@
-"""Valor obtido de uma fonte, ou o motivo pelo qual não pôde ser obtido. Permite que cada fonte
-falhe de forma independente sem derrubar a análise."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -28,8 +25,7 @@ class Dado(Generic[T]):
 
     @staticmethod
     def coletar(coleta: Callable[[], T]) -> Dado[T]:
-        """Executa a coleta e converte qualquer falha em "indisponível", com mensagem segura."""
         try:
             return Dado.de(coleta())
-        except Exception as e:  # noqa: BLE001 - cada fonte falha sozinha, sem derrubar a análise
+        except Exception as e:
             return Dado.indisponivel(str(e) or "Fonte indisponível.")

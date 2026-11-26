@@ -1,7 +1,3 @@
-"""Acesso ao banco. Todas as consultas usam parâmetros vinculados (sem concatenação de SQL), o que
-impede SQL Injection. Cada método abre uma sessão curta; os objetos devolvidos continuam legíveis
-depois (com as relações que a tela usa já carregadas)."""
-
 from __future__ import annotations
 
 import math
@@ -34,7 +30,7 @@ class Pagina(Generic[T]):
 
 
 class ErroIntegridade(Exception):
-    """Gravação recusada pelo banco por violar uma restrição (ex.: registro repetido)."""
+    pass
 
 
 class _Repositorio:
@@ -42,7 +38,6 @@ class _Repositorio:
         self._sessoes = sessoes
 
     def _salvar(self, objeto, *relacoes):
-        """Insere ou atualiza (merge) e devolve o objeto gravado, com as relações pedidas carregadas."""
         try:
             with self._sessoes.begin() as s:
                 gravado = s.merge(objeto)
@@ -131,8 +126,6 @@ class OcorrenciaRepositorio(_Repositorio):
 
     def buscar_na_area(self, status: StatusValidacao, lat_min: float, lat_max: float, lon_min: float,
                        lon_max: float, desde: date) -> list[Ocorrencia]:
-        """Ocorrências com coordenadas dentro de um retângulo (pré-filtro); a distância exata é
-        calculada depois."""
         with self._sessoes() as s:
             return list(s.scalars(
                 select(Ocorrencia).options(joinedload(Ocorrencia.fonte))
@@ -143,7 +136,6 @@ class OcorrenciaRepositorio(_Repositorio):
                 .order_by(Ocorrencia.data_ocorrencia.desc())))
 
     def registros_municipais(self, codigo_ibge: str, status: StatusValidacao, desde: date) -> list[Ocorrencia]:
-        """Registros oficiais municipais (sem coordenadas) de um município a partir de uma data."""
         with self._sessoes() as s:
             return list(s.scalars(
                 select(Ocorrencia).options(joinedload(Ocorrencia.fonte))
@@ -154,7 +146,6 @@ class OcorrenciaRepositorio(_Repositorio):
                 .order_by(Ocorrencia.data_ocorrencia.desc())))
 
     def existe_base_oficial(self, estado: str) -> bool:
-        """Indica se já existem registros oficiais municipais para a UF (cobertura da base)."""
         with self._sessoes() as s:
             return bool(s.scalar(select(exists().where(
                 Ocorrencia.estado == estado, Ocorrencia.origem == OrigemOcorrencia.OFICIAL,
@@ -167,7 +158,6 @@ class OcorrenciaRepositorio(_Repositorio):
 
     def listar_confirmadas(self, estado: str | None, municipio_minusculo: str | None,
                            origem: OrigemOcorrencia | None, pagina: int, tamanho: int) -> Pagina[Ocorrencia]:
-        """Listagem pública: somente ocorrências confirmadas, filtrando por UF, município e origem."""
         filtros = [Ocorrencia.status_validacao == StatusValidacao.CONFIRMADA]
         if estado is not None:
             filtros.append(Ocorrencia.estado == estado)
@@ -179,9 +169,6 @@ class OcorrenciaRepositorio(_Repositorio):
 
     def listar_relatos_para_moderacao(self, status: StatusValidacao, busca_like: str | None, pagina: int,
                                       tamanho: int) -> Pagina[Ocorrencia]:
-        """Moderação: só relatos de usuários (os registros oficiais não passam por moderação e são
-        dezenas de milhares), com busca opcional por local, município, descrição ou relator.
-        ``busca_like`` já vem em minúsculas, com os curingas escapados por '!' e entre '%'."""
         filtros = [Ocorrencia.origem == OrigemOcorrencia.RELATO_USUARIO, Ocorrencia.status_validacao == status]
         if busca_like is not None:
             filtros.append(or_(*(func.lower(func.coalesce(coluna, "")).like(busca_like, escape="!") for coluna in (

@@ -1,19 +1,3 @@
-"""Ferramenta de linha de comando (não faz parte do servidor) que gera a base compacta de desastres
-ligados a chuva a partir do CSV oficial do Atlas Digital de Desastres no Brasil (MIDR/Sedec,
-registros do S2iD). O resultado é gravado em ``alertalar/dados/`` e carregado no banco pela
-migração de histórico oficial (V4).
-
-Uso::
-
-    python -m alertalar.ferramentas.preparar_base_atlas \\
-        BD_Atlas_1991_2025_v1.1_2026.08.06_Consolidado.csv \\
-        alertalar/dados/atlas-desastres-chuva.csv.gz \\
-        alertalar/dados/municipios-ibge.csv.gz
-
-Baixe o CSV em https://atlasdigital.mdr.gov.br (página Downloads). O arquivo oficial vem em
-Windows-1252 com separador ";".
-"""
-
 from __future__ import annotations
 
 import gzip
@@ -28,7 +12,6 @@ from pathlib import Path
 from alertalar.integracoes.s2id import dividir
 from alertalar.util.numeros import arredondar
 
-# Tipologias aproveitadas (descricao_tipologia do Atlas)
 TIPOLOGIAS = frozenset({"Inundações", "Enxurradas", "Alagamentos", "Chuvas Intensas"})
 
 COLUNAS_SAIDA = ("protocolo", "uf", "municipio", "ibge", "data", "cobrade", "tipologia", "status", "mortos",
@@ -41,9 +24,6 @@ COLUNAS_ATLAS = ("Protocolo_S2iD", "Sigla_UF", "Nome_Municipio", "Cod_IBGE_Mun",
 
 @dataclass(frozen=True)
 class Resultado:
-    """``municipios``: código IBGE, UF e cada grafia do nome que aparece no Atlas (todas as
-    tipologias, não só as de chuva), ordenados por código e nome."""
-
     linhas: list[list[str]]
     lidas: int
     outras_tipologias: int
@@ -102,15 +82,12 @@ def converter(entrada: io.TextIOBase) -> Resultado:
                       _inteiro(campo(8)), _inteiro(campo(9)), _inteiro(campo(10)), _inteiro(campo(11)),
                       _inteiro(campo(12))])
         por_tipologia[tipologia] += 1
-    # Ordenado por município e data: comprime melhor e facilita conferências
     saida.sort(key=lambda r: (r[3], r[4], r[0]))
     lista_municipios = [m.split(";", 2) for m in sorted(municipios)]
     return Resultado(saida, lidas, outras, invalidos, dict(sorted(por_tipologia.items())), lista_municipios)
 
 
 def _ler_registro(entrada: io.TextIOBase) -> str | None:
-    """Um registro completo: campos entre aspas podem conter quebras de linha (ex.: descrições de
-    danos), então as linhas são juntadas enquanto houver aspas abertas."""
     linha = entrada.readline()
     if not linha:
         return None

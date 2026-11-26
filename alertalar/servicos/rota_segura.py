@@ -1,12 +1,3 @@
-"""Rota segura até um destino escolhido pela pessoa (endereço, nome do local ou ponto no mapa):
-calcula o caminho pelas ruas, a pé ou de carro, pedindo ao roteador que evite os setores de risco
-hidrológico do SGB entre a partida e o destino.
-
-Depois confere o caminho: setores que ele ainda atravessa e o perfil de altura (trechos mais baixos
-que a partida geram aviso). Também avisa se o destino fica dentro de uma área de risco ou mais
-baixo que a partida. É uma sugestão baseada em dados públicos, não uma rota oficial de evacuação.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -28,11 +19,9 @@ from alertalar.util.numeros import arredondar
 
 log = logging.getLogger("alertalar.rota")
 
-# O Valhalla limita o perímetro total dos polígonos evitados (padrão de 10 km)
 PERIMETRO_MAXIMO_EVITAR = 9000
 AMOSTRAS_PERFIL = 60
 TOLERANCIA_TRECHO_BAIXO = 2
-# Distância máxima em linha reta até o destino (o desvio de áreas de risco tem limite de perímetro)
 DISTANCIA_MAXIMA_DESTINO = 20_000
 DISTANCIA_MINIMA_DESTINO = 30
 SEM_PERFIL = ("Não foi possível consultar a altura do terreno ao longo do caminho agora, então ele não foi "
@@ -60,15 +49,12 @@ class RotaSeguraService:
 
     def calcular(self, lat: float, lon: float, lat_destino: float, lon_destino: float, modo: ModoRota,
                  progresso: ProgressoRota = NENHUM) -> RotaSeguraResponse:
-        """Rota até o destino escolhido, avisando o andamento de cada consulta externa."""
         self.validar(lat, lon, lat_destino, lon_destino)
         chave = f"{lat:.4f},{lon:.4f}>{lat_destino:.4f},{lon_destino:.4f},{modo.value}"
         return self._cache.obter_ou_calcular(
             chave, lambda: self._calcular_sem_cache(lat, lon, lat_destino, lon_destino, modo, progresso))
 
     def validar(self, lat: float, lon: float, lat_destino: float, lon_destino: float) -> None:
-        """Confere partida e destino antes de começar (o erro volta como resposta comum, não no meio
-        do andamento)."""
         if not geo.dentro_do_brasil(lat, lon) or not geo.dentro_do_brasil(lat_destino, lon_destino):
             raise RegraNegocio("A partida e o destino precisam estar no território brasileiro.")
         distancia = geo.distancia_metros(lat, lon, lat_destino, lon_destino)
@@ -186,7 +172,6 @@ class RotaSeguraService:
     def _montar_com_rota(self, m: Montador, origem: Ponto, e0: float | None, destino: Destino, rota: Rota,
                          desvio_aplicado: bool, setores_evitados: int, hidrologicos: list[SetorRisco],
                          setores_conhecidos: list[SetorRisco]) -> RotaSeguraResponse:
-        """``setores_conhecidos``: setores da partida/destino, já avisados (não contam como atravessados)."""
         m.andamento.concluir(Etapa.CAMINHO, formatar_distancia(rota.distancia_metros) + " pelas ruas")
         m.destino = destino
         instrucoes = [InstrucaoRota(texto=i.texto, distancia_metros=float(arredondar(i.distancia_metros)),
@@ -197,7 +182,6 @@ class RotaSeguraService:
                             instrucoes=instrucoes, desvio_areas_risco_aplicado=desvio_aplicado,
                             setores_evitados=setores_evitados)
 
-        # Setores de risco atravessados pelo caminho (exceto os da partida e do destino)
         atravessados: dict[str, None] = {}
         for p in geo.amostrar(rota.pontos, min(200, max(20, len(rota.pontos)))):
             s = setor_que_contem(hidrologicos, p[0], p[1])
@@ -207,7 +191,6 @@ class RotaSeguraService:
             m.avisos.append(f"O caminho passa por dentro de área de risco mapeada pelo SGB (setor "
                             f"{', '.join(atravessados)}). Atenção redobrada nesse trecho e não atravesse se houver água.")
 
-        # Perfil de elevação do caminho
         amostras = geo.amostrar(rota.pontos, AMOSTRAS_PERFIL)
         m.andamento.verificar_cancelamento()
         m.andamento.iniciar(Etapa.PERFIL, f"{len(amostras)} pontos do caminho")
@@ -249,12 +232,7 @@ class RotaSeguraService:
         return m.com_rota(origem, mensagem)
 
 
-# ------------------------------------------------------------------ áreas a evitar
-
 def poligonos_a_evitar(hidrologicos: list[SetorRisco], lat: float, lon: float, lat_d: float, lon_d: float) -> Evitar:
-    """Setores a evitar: todos os hidrológicos que não contêm a origem nem o destino, dos mais
-    próximos do trajeto em linha reta para os mais distantes, até o limite de perímetro aceito pelo
-    roteador."""
     segmento = [(lat, lon), (lat_d, lon_d)]
     aneis = []
     for s in hidrologicos:
@@ -328,13 +306,10 @@ def _arred(v: float) -> float:
 
 
 class Andamento:
-    """Envia o andamento das etapas para quem acompanha o cálculo (a tela, via :class:`ProgressoRota`)."""
-
     def __init__(self, progresso: ProgressoRota):
         self.progresso = progresso
 
     def plano(self) -> None:
-        """Todas as etapas como pendentes, para a tela já mostrar o que vem pela frente."""
         for e in Etapa:
             self._informar(e, Estado.PENDENTE, None)
 
@@ -367,21 +342,18 @@ class Andamento:
         return d
 
     def verificar_cancelamento(self) -> None:
-        """Para o cálculo se a pessoa desistiu, antes de mais uma consulta externa."""
         if self.progresso.cancelado():
             raise CalculoCancelado()
 
     def _informar(self, etapa: Etapa, estado: Estado, detalhe: str | None) -> None:
         try:
             self.progresso.informar(Evento(etapa.name, estado.value, etapa.rotulo, etapa.fonte, detalhe))
-        except Exception as e:  # noqa: BLE001 - o andamento nunca derruba o cálculo
+        except Exception as e:
             log.debug("Falha ao informar andamento da rota: %s", e)
 
 
 @dataclass
 class Montador:
-    """Acumula as partes da resposta."""
-
     modo: ModoRota
     andamento: Andamento
     avisos: list[str] = field(default_factory=list)

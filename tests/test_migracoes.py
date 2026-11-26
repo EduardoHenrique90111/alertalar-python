@@ -1,5 +1,3 @@
-"""Migrações: ordem dos arquivos e convivência com um banco criado pela versão em Java (Flyway)."""
-
 import uuid
 
 from sqlalchemy import create_engine, text

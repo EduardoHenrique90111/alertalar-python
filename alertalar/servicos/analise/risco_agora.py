@@ -1,21 +1,3 @@
-"""Risco de AGORA: combina a chuva do momento (observada nas últimas horas e prevista para as
-próximas 24 h) e a subida de rios com a suscetibilidade do local (classificação da consulta).
-
-Nível da chuva (0 a 3), pelos limites que o INMET usa nos avisos de chuvas intensas:
-
-- 1, perigo potencial: 20 mm em uma hora, ou 30 mm em 24 h (o INMET diz "até 50 mm/dia" sem piso;
-  30 mm é o piso adotado pelo AlertaLar);
-- 2, perigo: 30 mm em uma hora, ou 50 mm em 24 h;
-- 3, grande perigo: mais de 60 mm em uma hora, ou mais de 100 mm em 24 h.
-
-Também conta a chuva acumulada nas últimas 72 h (solo encharcado; critério do AlertaLar): 100 mm
-leva ao nível 1 e 150 mm ao nível 2.
-
-Risco agora = 0 sem chuva relevante; com chuva, nível da chuva − 1 + suscetibilidade (baixa 0,
-moderada ou desconhecida 1, alta 2), limitado a 3. Rio próximo com previsão de subir 50% ou mais
-garante pelo menos "atenção".
-"""
-
 from __future__ import annotations
 
 from alertalar.esquemas import Chuva, RiscoAgora, Vazao
@@ -35,8 +17,6 @@ _SUSC_FRASE = ("baixa", "moderada", "alta")
 
 def avaliar(chuva: Chuva | None, vazao: Vazao | None, suscetibilidade: ClassificacaoRisco | None,
             perto_de_agua: bool) -> RiscoAgora:
-    """``suscetibilidade``: classificação da consulta (None sem consulta, tratada como moderada);
-    ``perto_de_agua``: rio, canal ou córrego próximo segundo a consulta."""
     susc = None if suscetibilidade is None else suscetibilidade.value
     if chuva is None or not chuva.disponivel:
         return RiscoAgora(nivel="INDISPONIVEL", rotulo="Indisponível", nivel_chuva=None, nivel_chuva_rotulo=None,
@@ -73,7 +53,6 @@ def avaliar(chuva: Chuva | None, vazao: Vazao | None, suscetibilidade: Classific
 
 
 def nivel_chuva(c: Chuva, motivos: list[str]) -> int:
-    """Nível da chuva (0 a 3) e os motivos, em português."""
     nivel = 0
     hora_passada = _valor(c.maior_intensidade_horaria_ultimas_24h_mm)
     hora_futura = _valor(c.maior_intensidade_horaria_proximas_24h_mm)
@@ -106,7 +85,6 @@ def _nivel_dia(mm: float) -> int:
 
 
 def _resumo(risco: int, n_chuva: int, suscetibilidade: int, suscetibilidade_conhecida: bool) -> str:
-    """A primeira frase descreve chuva e local; a segunda diz o que fazer no nível de risco."""
     local = f" num local de suscetibilidade {_SUSC_FRASE[suscetibilidade]}." if suscetibilidade_conhecida else "."
     if n_chuva == 0:
         base = "Sem chuva forte agora nem prevista para as próximas 24 horas."

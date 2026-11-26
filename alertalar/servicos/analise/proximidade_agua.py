@@ -1,5 +1,3 @@
-"""Ponto mais próximo de um curso/corpo d'água em relação ao endereço consultado."""
-
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable

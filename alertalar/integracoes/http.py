@@ -1,9 +1,3 @@
-"""Cliente HTTP único para todas as fontes externas, cache temporário e limitador de intervalo.
-
-O cliente centraliza tempo limite, User-Agent, leitura de JSON e a conversão de falhas em
-:class:`IntegracaoExterna`, sem expor detalhes internos ao usuário final.
-"""
-
 from __future__ import annotations
 
 import json
@@ -27,12 +21,10 @@ V = TypeVar("V")
 
 
 def codificar(valor: Any) -> str:
-    """Codifica parâmetros de URL/formulário em UTF-8 (protege contra injeção de parâmetros)."""
     return quote_plus("" if valor is None else str(valor), safe="")
 
 
 def uri(base: str, parametros: Mapping[str, Any] | None = None) -> str:
-    """Monta uma URL com parâmetros de consulta corretamente codificados."""
     if not parametros:
         return base
     query = "&".join(f"{codificar(k)}={codificar(v)}" for k, v in parametros.items() if v is not None)
@@ -50,7 +42,6 @@ class ClienteHttpExterno:
         self._local = threading.local()
 
     def _sessao(self) -> requests.Session:
-        # Uma sessão (e um conjunto de conexões) por thread
         sessao = getattr(self._local, "sessao", None)
         if sessao is None:
             sessao = requests.Session()
@@ -67,7 +58,6 @@ class ClienteHttpExterno:
             "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"})
 
     def post_json(self, fonte: str, url: str, corpo_json: Any) -> Any:
-        """POST com corpo JSON e resposta JSON."""
         corpo = json.dumps(corpo_json, ensure_ascii=False).encode("utf-8")
         return self._executar(fonte, "POST", url, data=corpo, headers={
             "Accept": "application/json", "Content-Type": "application/json"})
@@ -101,21 +91,16 @@ class ClienteHttpExterno:
 
 
 def _retry_after(valor: str | None) -> float | None:
-    """Segundos pedidos no Retry-After (o formato com data não é usado pelas fontes atuais)."""
     if valor is None or not re.fullmatch(r"\d{1,6}", valor.strip()):
         return None
     return float(valor.strip())
 
 
-# ---------------------------------------------------------------- leitura tolerante de JSON
-
 def campo(no: Any, nome: str) -> Any:
-    """``no[nome]`` quando ``no`` é um objeto JSON; senão None (como o ``path`` do Jackson)."""
     return no.get(nome) if isinstance(no, dict) else None
 
 
 def lista(no: Any) -> list:
-    """Os itens de um array JSON (ou os valores de um objeto); vazio para os demais tipos."""
     if isinstance(no, list):
         return no
     if isinstance(no, dict):
@@ -124,7 +109,6 @@ def lista(no: Any) -> list:
 
 
 def texto(no: Any, nome: str) -> str | None:
-    """Campo como texto aparado; None se ausente, nulo ou em branco."""
     valor = campo(no, nome)
     if valor is None:
         return None
@@ -138,8 +122,6 @@ def texto(no: Any, nome: str) -> str | None:
 
 
 def numero(valor: Any, nome: str | None = None) -> float | None:
-    """Número de um campo (``numero(no, "lat")``) ou de um valor (``numero(valor)``).
-    Aceita números e textos numéricos ("12,5"); o resto vira None."""
     if nome is not None:
         valor = campo(valor, nome)
     if valor is None or isinstance(valor, bool):
@@ -154,8 +136,6 @@ def numero(valor: Any, nome: str | None = None) -> float | None:
     return None
 
 
-# ---------------------------------------------------------------- cache e limitador
-
 @dataclass
 class _Entrada(Generic[V]):
     valor: V
@@ -164,9 +144,6 @@ class _Entrada(Generic[V]):
 
 
 class CacheTemporario(Generic[K, V]):
-    """Cache em memória com tempo de expiração e tamanho máximo. Reduz chamadas repetidas às
-    APIs públicas (respeitando suas políticas de uso) sem dependências extras."""
-
     def __init__(self, ttl_segundos: float, tamanho_maximo: int, relogio: Callable[[], float] = time.time):
         self.ttl = ttl_segundos
         self.tamanho_maximo = tamanho_maximo
@@ -194,7 +171,6 @@ class CacheTemporario(Generic[K, V]):
             self._mapa[chave] = _Entrada(valor, agora + self.ttl, agora)
 
     def obter_ou_calcular(self, chave: K, calculo: Callable[[], V]) -> V:
-        """Valor em cache ou calcula, guarda e devolve. Exceções não são guardadas."""
         existente = self.obter(chave)
         if existente is not None:
             return existente
@@ -214,9 +190,6 @@ class CacheTemporario(Generic[K, V]):
 
 
 class LimitadorIntervalo:
-    """Garante um intervalo mínimo entre chamadas a uma API (ex.: o Nominatim público exige no
-    máximo 1 requisição por segundo para toda a aplicação)."""
-
     def __init__(self, intervalo_segundos: float):
         self.intervalo = intervalo_segundos
         self._ultima: float | None = None

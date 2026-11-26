@@ -1,7 +1,3 @@
-"""Situação atual (chuva recente/prevista e vazão modelada) e o risco deste momento, que combina
-essas medidas com a suscetibilidade do local (:mod:`risco_agora`). A classificação gravada na
-consulta não muda."""
-
 from __future__ import annotations
 
 import uuid
@@ -27,8 +23,6 @@ OBSERVACAO_VAZAO = ("Vazão diária simulada pelo GloFAS numa grade de ~5 km. Re
 
 @dataclass(frozen=True)
 class Medidas:
-    """Chuva e vazão medidas para um ponto (guardadas 15 min por grade de ~1 km)."""
-
     chuva: Chuva
     vazao: Vazao
     consultado_em: datetime
@@ -48,11 +42,8 @@ class SituacaoAtualService:
         self._cache: CacheTemporario[str, Medidas] = CacheTemporario(15 * 60, 2_000)
 
     def consultar(self, lat: float, lon: float, id_consulta: uuid.UUID | None = None) -> SituacaoAtualResponse:
-        """``id_consulta``: consulta cujo resultado está na tela (opcional); sua classificação e a
-        proximidade de água entram no risco de agora."""
         if not geo.dentro_do_brasil(lat, lon):
             raise RegraNegocio("As coordenadas informadas estão fora do território brasileiro.")
-        # Grade de ~1 km: os modelos meteorológicos têm resolução mais grossa que isso
         chave = f"{lat:.2f},{lon:.2f}"
         m = self._cache.obter_ou_calcular(chave, lambda: self.medir(lat, lon))
 

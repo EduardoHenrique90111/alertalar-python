@@ -1,8 +1,3 @@
-"""Tabelas do banco mapeadas pelo SQLAlchemy.
-
-A estrutura é criada pelas migrações (pasta ``migracoes``), não por este arquivo.
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -32,7 +27,6 @@ def agora() -> datetime:
 
 
 def _enum(classe, tamanho: int):
-    # Grava o nome do item (ex.: 'ALTO') num VARCHAR; os CHECKs ficam nas migrações
     return SqlEnum(classe, native_enum=False, create_constraint=False, length=tamanho, validate_strings=True)
 
 
@@ -41,8 +35,6 @@ class Base(DeclarativeBase):
 
 
 class FonteDados(Base):
-    """Fonte de dados utilizada pelo sistema (API, base geográfica, importação oficial ou relatos)."""
-
     __tablename__ = "fonte_dados"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -52,15 +44,12 @@ class FonteDados(Base):
     url: Mapped[str | None] = mapped_column(String(500))
     status_integracao: Mapped[StatusIntegracao] = mapped_column(_enum(StatusIntegracao, 30))
     oficial: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Último acesso bem-sucedido (APIs) ou última importação (bases oficiais)
     data_atualizacao: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     descricao: Mapped[str | None] = mapped_column(String(1000))
     atribuicao: Mapped[str | None] = mapped_column(String(500))
 
 
 class Usuario(Base):
-    """Usuário do sistema. A senha nunca é armazenada em texto: somente o hash BCrypt."""
-
     __tablename__ = "usuario"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -73,8 +62,6 @@ class Usuario(Base):
 
 
 class Endereco(Base):
-    """Endereço geocodificado. Também serve de cache para não repetir chamadas ao Nominatim."""
-
     __tablename__ = "endereco"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -93,7 +80,6 @@ class Endereco(Base):
     data_geocodificacao: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
 
     def descricao_completa(self) -> str:
-        """Texto amigável do endereço, ex.: "Rua X, 100 - Centro, Canoas/RS"."""
         partes = ""
         if self.rua and self.rua.strip():
             partes = self.rua
@@ -112,20 +98,15 @@ class Endereco(Base):
 
 
 class Consulta(Base):
-    """Consulta de risco realizada para um endereço. O identificador é um UUID para que o link
-    do resultado não possa ser adivinhado a partir de números sequenciais."""
-
     __tablename__ = "consulta"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     endereco_id: Mapped[int] = mapped_column(ForeignKey("endereco.id"))
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"))
     classificacao: Mapped[ClassificacaoRisco] = mapped_column(_enum(ClassificacaoRisco, 30))
-    # Índice de 0 a 100 derivado da média ponderada dos fatores (nulo quando dados insuficientes)
     indice: Mapped[float | None] = mapped_column(Double)
     justificativa: Mapped[str] = mapped_column(Text)
     versao_metodologia: Mapped[str] = mapped_column(String(10))
-    # Instantâneo (JSON) das geometrias reais exibidas no mapa no momento da consulta
     dados_mapa: Mapped[str | None] = mapped_column(Text)
     data_consulta: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
 
@@ -138,8 +119,6 @@ class Consulta(Base):
 
 
 class FatorConsulta(Base):
-    """Resultado de um fator individual dentro de uma consulta (base da justificativa)."""
-
     __tablename__ = "consulta_fator"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -149,7 +128,6 @@ class FatorConsulta(Base):
     nome: Mapped[str] = mapped_column(String(120))
     categoria: Mapped[CategoriaFator] = mapped_column(_enum(CategoriaFator, 30))
     situacao: Mapped[SituacaoFator] = mapped_column(_enum(SituacaoFator, 20))
-    # 0 (sem indício) a 3 (indício forte). Nulo quando não avaliado
     pontuacao: Mapped[int | None] = mapped_column(Integer)
     peso: Mapped[float] = mapped_column(Double)
     valor_observado: Mapped[str | None] = mapped_column(String(500))
@@ -162,15 +140,10 @@ class FatorConsulta(Base):
 
 
 class Ocorrencia(Base):
-    """Ocorrência de enchente/alagamento: registro oficial (importado de fonte governamental) ou
-    relato de usuário. Relatos começam como PENDENTE e só entram na análise de risco depois de
-    CONFIRMADOS por um administrador."""
-
     __tablename__ = "ocorrencia"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     endereco_id: Mapped[int | None] = mapped_column(ForeignKey("endereco.id"))
-    # Descrição textual do local (endereço ou referência aproximada)
     localizacao: Mapped[str] = mapped_column(String(300))
     municipio: Mapped[str | None] = mapped_column(String(120))
     estado: Mapped[str | None] = mapped_column(String(2))
@@ -184,9 +157,7 @@ class Ocorrencia(Base):
     latitude: Mapped[float | None] = mapped_column(Double)
     longitude: Mapped[float | None] = mapped_column(Double)
     fonte_id: Mapped[int] = mapped_column(ForeignKey("fonte_dados.id"))
-    # Identificador do registro na fonte de origem (ex.: protocolo do S2iD), usado para evitar duplicidade
     identificador_externo: Mapped[str | None] = mapped_column(String(120))
-    # Identificação opcional de quem relatou. Nunca é exibida publicamente
     nome_relator: Mapped[str | None] = mapped_column(String(120))
     contato_relator: Mapped[str | None] = mapped_column(String(254))
     usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"))

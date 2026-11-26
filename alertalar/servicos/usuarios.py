@@ -1,5 +1,3 @@
-"""Cadastro de usuários e verificação de senha (hash BCrypt, compatível com o da versão em Java)."""
-
 from __future__ import annotations
 
 import bcrypt
@@ -36,7 +34,6 @@ class UsuarioService:
     def __init__(self, repositorio: UsuarioRepositorio, custo_bcrypt: int = CUSTO_BCRYPT):
         self.repositorio = repositorio
         self.custo = custo_bcrypt
-        # Hash de uma senha qualquer: a verificação leva o mesmo tempo quando o e-mail não existe
         self._hash_falso = gerar_hash("senha-inexistente-0", custo_bcrypt)
 
     def registrar(self, req: RegistroRequest) -> Usuario:
@@ -54,7 +51,6 @@ class UsuarioService:
         return None if email is None else self.repositorio.por_email(email.strip())
 
     def autenticar(self, email: str, senha: str) -> Usuario:
-        """Usuário com o e-mail e a senha informados. A mensagem de erro não revela se o e-mail existe."""
         usuario = self.por_email(email)
         if usuario is None:
             confere_senha(senha, self._hash_falso)

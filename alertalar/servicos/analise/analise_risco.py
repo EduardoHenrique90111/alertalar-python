@@ -1,20 +1,3 @@
-"""Consolida os fatores independentes em uma classificação.
-
-**Metodologia (versão 1.0)**
-
-1. Cada fator devolve uma pontuação de 0 (sem indício) a 3 (indício forte), ou fica fora da conta
-   quando não há dado (INDISPONIVEL) ou quando a ausência de registro não pode ser interpretada
-   como evidência (SEM_REGISTRO).
-2. É obrigatório pelo menos um fator geográfico avaliado e pelo menos dois fatores avaliados;
-   caso contrário, a classificação é "Dados insuficientes".
-3. Média ponderada M (0 a 3): M ≥ 1,9 → alto; M ≥ 1,0 → moderado; abaixo → baixo.
-4. Regras de evidência: estar dentro de setor de risco alto/muito alto do SGB → alto; três ou mais
-   ocorrências confirmadas nas proximidades → no mínimo moderado.
-
-A classificação indica a presença de indícios nos dados disponíveis. Não é laudo técnico, estudo
-hidrológico nem previsão meteorológica.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -39,9 +22,6 @@ FATORES_GEOGRAFICOS = frozenset({FatorProximidadeAgua.CODIGO, FatorElevacaoRelat
 
 @dataclass(frozen=True)
 class ResultadoAnalise:
-    """Resultado consolidado. ``indice``: média ponderada convertida para 0-100 (None quando dados
-    insuficientes)."""
-
     classificacao: ClassificacaoRisco
     indice: float | None
     fatores: list[AvaliacaoFator]

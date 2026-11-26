@@ -1,5 +1,3 @@
-"""Construtor de contextos de análise para os testes dos fatores."""
-
 from __future__ import annotations
 
 import math
@@ -52,7 +50,6 @@ class ContextoTeste:
         return ContextoTeste()
 
     def rio_a(self, metros: float) -> ContextoTeste:
-        """Rio vertical a uma distância (m) a leste do ponto."""
         d_lon = metros / (111_320 * math.cos(math.radians(LAT)))
         linha = ((LAT - 0.01, LON + d_lon), (LAT + 0.01, LON + d_lon))
         self.cursos = Dado.de([CursoDagua(1, "river", None, "Rio Teste", True, False, (linha,))])
@@ -79,7 +76,6 @@ class ContextoTeste:
         return self
 
     def setor(self, grau: str, deslocamento_graus: float, hidrologico: bool) -> ContextoTeste:
-        """Setor quadrado (~220 m de lado) centrado no ponto deslocado de ``deslocamento_graus``."""
         c = LON + deslocamento_graus
         d = 0.001
         anel = ((LAT - d, c - d), (LAT - d, c + d), (LAT + d, c + d), (LAT + d, c - d), (LAT - d, c - d))
@@ -105,7 +101,6 @@ class ContextoTeste:
         return self
 
     def construir(self, ajuste_historico: Callable[[list[Ocorrencia]], None] | None = None) -> ContextoAnalise:
-        """``ajuste_historico`` permite mudar os registros do histórico municipal antes de montar."""
         if ajuste_historico is not None and self.historico.disponivel:
             ajuste_historico(self.historico.valor.registros)
         return ContextoAnalise(LAT, LON, "RS", self.codigo_ibge, Parametros(1500, 500, 300, 30), self.cursos,

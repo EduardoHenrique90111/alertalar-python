@@ -1,6 +1,3 @@
-"""Registro, listagem e moderação de ocorrências. Relatos de usuários entram como PENDENTE e só
-passam a contar na análise de risco quando um administrador os CONFIRMA."""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -58,7 +55,6 @@ class OcorrenciaService:
 
     def listar_confirmadas(self, estado: str | None, municipio: str | None, origem: OrigemOcorrencia | None,
                            pagina: int, tamanho: int) -> PaginaResponse[OcorrenciaResponse]:
-        """Listagem pública (somente ocorrências confirmadas)."""
         uf = None if txt.vazio(estado) else estado.strip().upper()
         mun = None if txt.vazio(municipio) else municipio.strip().lower()
         p = self.repositorio.listar_confirmadas(uf, mun, origem, max(0, pagina),
@@ -66,7 +62,6 @@ class OcorrenciaService:
         return _pagina(p, conversores.ocorrencia)
 
     def confirmadas_proximas(self, lat: float, lon: float, raio_metros: int, anos: int) -> list[OcorrenciaResponse]:
-        """Ocorrências confirmadas com coordenadas ao redor de um ponto (para o mapa)."""
         if not geo.dentro_do_brasil(lat, lon):
             raise RegraNegocio("As coordenadas informadas estão fora do território brasileiro.")
         raio = _limitar(raio_metros, 50, 10_000)
@@ -75,8 +70,6 @@ class OcorrenciaService:
 
     def listar_para_moderacao(self, status: StatusValidacao, busca: str | None, pagina: int,
                               tamanho: int) -> PaginaResponse[OcorrenciaAdminResponse]:
-        """Relatos de usuários para a moderação, do mais recente para o mais antigo, com busca opcional
-        (local, município, descrição, nome ou contato do relator). Registros oficiais ficam de fora."""
         p = self.repositorio.listar_relatos_para_moderacao(status, padrao_busca(busca), max(0, pagina),
                                                            _limitar(tamanho, 1, TAMANHO_MAXIMO_PAGINA))
         return _pagina(p, conversores.ocorrencia_admin)
@@ -110,7 +103,6 @@ class OcorrenciaService:
 
 
 def padrao_busca(busca: str | None) -> str | None:
-    """"Dom João" → "%dom joão%", com %, _ e ! escapados (o texto digitado nunca vira curinga)."""
     limpo = txt.limpar(busca)
     if limpo is None:
         return None

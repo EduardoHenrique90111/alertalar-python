@@ -1,12 +1,3 @@
-"""Leitura das planilhas oficiais de registros de desastres exportadas do S2iD (Sistema Integrado de
-Informações sobre Desastres) ou do Atlas Digital de Desastres no Brasil, salvas em CSV. Não há API
-pública documentada para esses dados, por isso a importação é manual.
-
-Os nomes de colunas variam entre exportações; o leitor reconhece variações comuns (ex.:
-"Cod_IBGE_Mun", "Código IBGE", "Município", "UF", "Data do Evento", "COBRADE"). Aproveita os
-desastres ligados a chuva: inundação, enxurrada, alagamento e chuvas intensas.
-"""
-
 from __future__ import annotations
 
 import re
@@ -34,8 +25,6 @@ ALIASES: dict[str, list[str]] = {
 
 @dataclass(frozen=True)
 class RegistroOficial:
-    """Registro oficial municipal de desastre hidrológico."""
-
     protocolo: str | None
     uf: str
     municipio: str | None
@@ -101,7 +90,6 @@ class LeitorRegistrosOficiaisCsv:
 
 
 def classificar(cobrade: str | None, descricao: str | None) -> TipoEvento | None:
-    """COBRADE 1.2.1 = inundação, 1.2.2 = enxurrada, 1.2.3 = alagamento, 1.3.2.1.4 = chuvas intensas."""
     codigo = txt.somente_digitos(cobrade)
     if codigo.startswith("121"):
         return TipoEvento.INUNDACAO
@@ -135,7 +123,7 @@ def _ler_data(texto: str | None, ano: str | None) -> tuple[date, bool] | None:
     if texto is not None:
         t = texto.strip()
         if len(t) > 10 and t[10] in (" ", "T"):
-            t = t[:10]  # descarta horário
+            t = t[:10]
         for padrao, formato in _FORMATOS_DATA:
             if padrao.fullmatch(t):
                 try:
@@ -158,7 +146,6 @@ def _valor(campos: list[str], colunas: dict[str, int], chave: str) -> str | None
 
 
 def registros(texto: str) -> list[str]:
-    """Separa o texto em registros, juntando linhas quando um campo entre aspas contém quebra de linha."""
     resultado = []
     atual: list[str] = []
     aspas = 0
@@ -201,7 +188,6 @@ def detectar_separador(cabecalho: str) -> str:
 
 
 def dividir(linha: str, separador: str) -> list[str]:
-    """Divide uma linha CSV respeitando aspas ("campo; com separador")."""
     campos = []
     atual: list[str] = []
     entre_aspas = False
@@ -225,7 +211,6 @@ def dividir(linha: str, separador: str) -> list[str]:
 
 
 def decodificar(dados: bytes) -> str:
-    """UTF-8 (com ou sem BOM); se inválido, Windows-1252, comum em exportações do Excel."""
     inicio = 3 if dados[:3] == b"\xef\xbb\xbf" else 0
     try:
         return dados[inicio:].decode("utf-8")

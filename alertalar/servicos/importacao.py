@@ -1,6 +1,3 @@
-"""Importa registros oficiais municipais (S2iD / Atlas Digital de Desastres) a partir da planilha
-CSV baixada pelo administrador. Evita duplicidade pelo protocolo do registro."""
-
 from __future__ import annotations
 
 import hashlib
@@ -92,7 +89,6 @@ def _descricao(r: RegistroOficial, arquivo: str) -> str:
 
 
 def identificador(r: RegistroOficial) -> str:
-    """Protocolo do S2iD, ou um hash estável dos campos quando a planilha não traz protocolo."""
     if r.protocolo is not None and r.protocolo.strip():
         return "PROT:" + r.protocolo.strip()
     base = "|".join((r.uf, _java_str(r.codigo_ibge), _java_str(r.municipio), r.data.isoformat(), r.tipo.value,
@@ -101,5 +97,4 @@ def identificador(r: RegistroOficial) -> str:
 
 
 def _java_str(valor: str | None) -> str:
-    # Mesmo texto da versão em Java (String.valueOf de null é "null"), para o hash não mudar
     return "null" if valor is None else valor

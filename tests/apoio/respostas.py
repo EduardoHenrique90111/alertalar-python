@@ -1,13 +1,9 @@
-"""Respostas no MESMO FORMATO das APIs reais (ViaCEP, Nominatim, IBGE, Overpass, Open-Meteo, ArcGIS do
-SGB, Valhalla). Os valores são fictícios e existem apenas para os testes automatizados."""
-
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 
 from alertalar.integracoes.valhalla import codificar
 
-# Ponto de teste (endereço fictício)
 LAT = -29.92
 LON = -51.18
 
@@ -30,8 +26,6 @@ def nominatim_numero() -> str:
 
 
 def photon(numero: str) -> str:
-    """Resposta do Photon (komoot) no formato real (GeoJSON): um imóvel com número, a rua, um lugar
-    (shopping) e um resultado fora do Brasil, que deve ser ignorado."""
     return f"""{{"type":"FeatureCollection","features":[
  {{"type":"Feature","geometry":{{"type":"Point","coordinates":[{LON:.6f},{LAT:.6f}]}},
   "properties":{{"osm_type":"N","osm_id":101,"osm_key":"place","osm_value":"house","type":"house",
@@ -67,9 +61,8 @@ def ibge_municipios_rs() -> str:
 
 
 def overpass_com_rio_e_corrego() -> str:
-    """Um rio a ~110 m a leste do ponto e um córrego a ~40 m ao norte."""
-    lon_rio = LON + 0.00114  # ~110 m
-    lat_corrego = LAT + 0.00036  # ~40 m
+    lon_rio = LON + 0.00114
+    lat_corrego = LAT + 0.00036
     return f"""{{"version":0.6,"generator":"Overpass API","elements":[
   {{"type":"way","id":101,"tags":{{"waterway":"river","name":"Rio dos Testes"}},
    "geometry":[{{"lat":{LAT - 0.005:.6f},"lon":{lon_rio:.6f}}},{{"lat":{LAT + 0.005:.6f},"lon":{lon_rio:.6f}}}]}},
@@ -83,7 +76,6 @@ def overpass_vazio() -> str:
 
 
 def elevacao(quantidade: int) -> str:
-    """Elevações: ponto 4 m, entorno 9 m, água 3 m (mesma ordem da requisição)."""
     valores = ["4.0"] + ["9.0" if i <= 8 else "3.0" for i in range(1, quantidade)]
     return '{"elevation":[' + ",".join(valores) + "]}"
 
@@ -93,7 +85,6 @@ def sgb_sem_setores() -> str:
 
 
 def sgb_setor_contendo_ponto() -> str:
-    """Setor de inundação "Muito alto" contendo o ponto de teste."""
     d = 0.001
     anel = [(LON - d, LAT - d), (LON + d, LAT - d), (LON + d, LAT + d), (LON - d, LAT + d), (LON - d, LAT - d)]
     aneis = ",".join(f"[{x:.6f},{y:.6f}]" for x, y in anel)
@@ -109,7 +100,6 @@ def sgb_erro() -> str:
 
 
 def previsao_chuva(agora_utc: datetime) -> str:
-    """Chuva horária: 2 mm/h nas últimas 24 h e 1 mm/h depois, no fuso -03:00."""
     local = agora_utc.astimezone(timezone(timedelta(hours=-3))).replace(tzinfo=None)
     inicio = local.replace(minute=0, second=0, microsecond=0) - timedelta(hours=30)
     tempos, valores = [], []
@@ -123,7 +113,6 @@ def previsao_chuva(agora_utc: datetime) -> str:
 
 
 def vazao(hoje: date) -> str:
-    """Vazão diária crescente (100 → 200 m³/s) de 7 dias atrás até 7 dias à frente."""
     tempos = ",".join(f'"{(hoje + timedelta(days=i)).isoformat()}"' for i in range(-7, 8))
     valores = ",".join("100.0" if i <= 0 else "200.0" for i in range(-7, 8))
     return ('{"latitude":-29.92,"longitude":-51.18,"daily_units":{"river_discharge":"m³/s"},'
@@ -131,7 +120,6 @@ def vazao(hoje: date) -> str:
 
 
 def valhalla_rota(lat_o: float, lon_o: float, lat_d: float, lon_d: float) -> str:
-    """Resposta do Valhalla (/route): trajeto em 3 pontos, com o "shape" em polyline de precisão 6."""
     shape = codificar([(lat_o, lon_o), (lat_o, lon_d), (lat_d, lon_d)], 6).replace("\\", "\\\\")
     return f"""{{"trip":{{"locations":[{{"type":"break","lat":{lat_o:.6f},"lon":{lon_o:.6f}}},{{"type":"break","lat":{lat_d:.6f},"lon":{lon_d:.6f}}}],
  "legs":[{{"maneuvers":[
@@ -144,5 +132,4 @@ def valhalla_rota(lat_o: float, lon_o: float, lat_d: float, lon_d: float) -> str
 
 
 def valhalla_sem_caminho() -> str:
-    """Erro do Valhalla quando não há caminho entre os pontos (HTTP 400)."""
     return '{"error_code":442,"error":"No path could be found for input","status_code":400,"status":"Bad Request"}'

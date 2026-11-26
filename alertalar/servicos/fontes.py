@@ -1,5 +1,3 @@
-"""Leitura das fontes de dados e registro da data do último acesso/atualização."""
-
 from __future__ import annotations
 
 import logging
@@ -11,7 +9,6 @@ from alertalar.repositorios import FonteDadosRepositorio
 
 log = logging.getLogger("alertalar.fontes")
 
-# Evita gravar no banco a cada consulta: atualiza no máximo a cada 10 minutos por fonte
 INTERVALO_GRAVACAO = timedelta(minutes=10)
 
 
@@ -34,7 +31,6 @@ class FonteDadosService:
         return fonte
 
     def registrar_acesso(self, codigo: str, quando: datetime) -> None:
-        """Registra que a fonte respondeu com sucesso agora (data exibida como "última atualização")."""
         with self._trava:
             anterior = self._ultima_gravacao.get(codigo)
             if anterior is not None and quando - anterior < INTERVALO_GRAVACAO:
@@ -46,5 +42,5 @@ class FonteDadosService:
                 self.repositorio.salvar(fonte)
             with self._trava:
                 self._ultima_gravacao[codigo] = quando
-        except Exception:  # noqa: BLE001 - a data de acesso nunca derruba a consulta
+        except Exception:
             log.warning("Não foi possível registrar o acesso à fonte %s", codigo, exc_info=True)

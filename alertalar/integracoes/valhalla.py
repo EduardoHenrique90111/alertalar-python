@@ -1,11 +1,3 @@
-"""Cálculo de rotas com o Valhalla (motor de rotas aberto sobre o OpenStreetMap).
-
-Por padrão usa o servidor público da FOSSGIS (valhalla1.openstreetmap.de), cuja política pede
-User-Agent identificável, no máximo 1 requisição por segundo e uso moderado. A URL é configurável
-(instância própria ou provedor compatível, como Stadia Maps).
-Documentação: https://valhalla.github.io/valhalla/api/turn-by-turn/api-reference/
-"""
-
 from __future__ import annotations
 
 import math
@@ -22,8 +14,6 @@ PRECISAO_POLYLINE = 6
 
 
 class ModoRota(str, Enum):
-    """Modo de deslocamento da rota segura e o perfil ("costing") equivalente no Valhalla."""
-
     A_PE = "A_PE"
     CARRO = "CARRO"
 
@@ -41,8 +31,6 @@ class ModoRota(str, Enum):
 
 @dataclass(frozen=True)
 class Instrucao:
-    """Uma manobra do trajeto ("Vire à direita na Rua X")."""
-
     texto: str | None
     distancia_metros: float
     duracao_segundos: float
@@ -52,8 +40,6 @@ class Instrucao:
 
 @dataclass(frozen=True)
 class Rota:
-    """Trajeto calculado: pontos ``(lat, lon)``, instruções em português, distância (m) e duração (s)."""
-
     pontos: list[tuple[float, float]]
     instrucoes: list[Instrucao]
     distancia_metros: float
@@ -70,14 +56,12 @@ class ValhallaClient:
 
     def rota(self, lat_origem: float, lon_origem: float, lat_destino: float, lon_destino: float, modo: ModoRota,
              evitar: list | None = None) -> Rota:
-        """``evitar``: polígonos (anéis de ``(lat, lon)``) cujas vias o roteador deve evitar."""
         corpo = {
             "locations": [{"lat": lat_origem, "lon": lon_origem}, {"lat": lat_destino, "lon": lon_destino}],
             "costing": modo.costing,
             "directions_options": {"units": "kilometers", "language": "pt-BR"},
         }
         if evitar:
-            # O Valhalla usa [lon, lat]
             corpo["exclude_polygons"] = [[[p[1], p[0]] for p in anel] for anel in evitar]
         url = self.url_base + "/route" + ("" if txt.vazio(self.chave_api) else "?api_key=" + http.codificar(self.chave_api))
         self.limitador.aguardar_vez()
@@ -113,11 +97,7 @@ def interpretar(dados) -> Rota:
     return Rota(pontos, instrucoes, 0 if km is None else km * 1000, 0 if segundos is None else segundos)
 
 
-# ------------------------------------------------------------------ polyline codificada
-
 def decodificar(codificado: str | None, precisao: int) -> list[tuple[float, float]]:
-    """Decodifica o formato "encoded polyline" do Valhalla (precisão de 6 casas decimais).
-    Referência: https://valhalla.github.io/valhalla/decoding/"""
     pontos: list[tuple[float, float]] = []
     if not codificado:
         return pontos
@@ -151,7 +131,6 @@ def _ler_valor(s: str, inicio: int) -> tuple[int, int]:
 
 
 def codificar(pontos: list, precisao: int) -> str:
-    """Codificação (usada nos testes e para simular respostas do Valhalla)."""
     fator = 10 ** precisao
     partes = []
     lat_anterior = lon_anterior = 0

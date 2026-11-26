@@ -1,10 +1,3 @@
-"""Configurações do AlertaLar.
-
-Os valores vêm de VARIÁVEIS DE AMBIENTE e, para o que não estiver definido nelas, de um arquivo
-``.env`` na pasta atual ou na pasta acima (veja ``.env.example``). As variáveis de ambiente do
-sistema têm prioridade sobre o ``.env``.
-"""
-
 from __future__ import annotations
 
 import os
@@ -16,11 +9,10 @@ PADRAO_DB_URL = "postgresql://alertalar@localhost:5432/alertalar"
 
 
 class ConfiguracaoInvalida(ValueError):
-    """Configuração que impede o AlertaLar de iniciar; a mensagem diz o que corrigir (sem mostrar senhas)."""
+    pass
 
 
 def ler_env(caminhos: list[Path] | None = None) -> dict[str, str]:
-    """Junta as variáveis do sistema com as do .env (as do sistema prevalecem)."""
     valores: dict[str, str] = {}
     for caminho in caminhos if caminhos is not None else [Path("../.env"), Path(".env")]:
         if caminho.is_file():
@@ -30,7 +22,6 @@ def ler_env(caminhos: list[Path] | None = None) -> dict[str, str]:
 
 
 def _ler_arquivo_env(caminho: Path) -> dict[str, str]:
-    """Formato CHAVE=valor, uma por linha; linhas com # são comentários."""
     valores = {}
     for linha in caminho.read_text(encoding="utf-8").splitlines():
         linha = linha.strip()
@@ -42,12 +33,6 @@ def _ler_arquivo_env(caminho: Path) -> dict[str, str]:
 
 
 def converter_database_url(valor: str) -> dict[str, str]:
-    """Aceita a conexão numa única variável, no formato que o Neon (e outros provedores) mostram:
-
-    ``postgresql://USUARIO:SENHA@HOST/BANCO?sslmode=require`` → DB_URL (sem credenciais),
-    DB_USERNAME e DB_PASSWORD. Também aceita o formato JDBC usado pela versão em Java.
-    Devolve um dicionário vazio se não reconhecer o formato.
-    """
     texto = valor.strip()
     if texto.lower().startswith("export "):
         texto = texto[len("export "):].strip()
@@ -56,7 +41,6 @@ def converter_database_url(valor: str) -> dict[str, str]:
     if texto.startswith("psql "):
         texto = texto[5:].strip()
     texto = texto.strip("'\"")
-    # Copiada do texto quebrado em linhas: espaços e quebras de linha não fazem parte da URL
     texto = "".join(texto.split())
     if texto.startswith("jdbc:postgresql://"):
         return {"DB_URL": texto}
@@ -85,8 +69,6 @@ def converter_database_url(valor: str) -> dict[str, str]:
 
 
 def problema_database_url(valor: str) -> str | None:
-    """Mensagem para quem preencheu DATABASE_URL com algo que não serve; None se estiver certa.
-    A mensagem nunca repete o valor (ele tem a senha do banco)."""
     formato = ("Ela deve ter o formato postgresql://USUARIO:SENHA@HOST/BANCO?sslmode=require "
                "(no Neon: Connect → Copy snippet).")
     convertido = converter_database_url(valor)
@@ -105,12 +87,10 @@ def problema_database_url(valor: str) -> str | None:
 
 
 def _decodificar(valor: str) -> str:
-    # "+" é literal no usuário/senha de uma URL (não é espaço)
     return unquote(valor)
 
 
 def montar_url_sqlalchemy(db_url: str, usuario: str | None, senha: str | None) -> str:
-    """DB_URL (JDBC ou postgresql://) + usuário e senha → URL do SQLAlchemy com o driver psycopg."""
     url = db_url.strip()
     if url.startswith("jdbc:"):
         url = url[len("jdbc:"):]
@@ -136,7 +116,6 @@ def montar_url_sqlalchemy(db_url: str, usuario: str | None, senha: str | None) -
 
 
 def _duracao_segundos(texto: str, padrao: float) -> float:
-    """"5s", "1100ms", "2m" ou número em segundos."""
     if not texto:
         return padrao
     t = texto.strip().lower()
@@ -158,9 +137,7 @@ class Integracoes:
     timeout_leitura: float = 25.0
     viacep_url: str = "https://viacep.com.br/ws"
     nominatim_url: str = "https://nominatim.openstreetmap.org"
-    # Política do Nominatim público: no máximo 1 requisição por segundo
     nominatim_intervalo_minimo: float = 1.1
-    # Reserva do Nominatim quando ele recusa pedidos (limite por IP) ou não responde: Photon (komoot)
     photon_url: str = "https://photon.komoot.io"
     photon_intervalo_minimo: float = 1.1
     ibge_url: str = "https://servicodados.ibge.gov.br/api/v1/localidades"
@@ -170,7 +147,6 @@ class Integracoes:
     vazao_url: str = "https://flood-api.open-meteo.com/v1/flood"
     sgb_setores_risco_url: str = (
         "https://geoportal.sgb.gov.br/server/rest/services/gestaoterritorial/risco/MapServer/0")
-    # Rotas (Valhalla). Servidor público da FOSSGIS: máximo 1 requisição/s e uso moderado.
     rotas_url: str = "https://valhalla1.openstreetmap.de"
     rotas_chave_api: str = ""
     rotas_intervalo_minimo: float = 1.1
@@ -186,7 +162,6 @@ class Analise:
 
 @dataclass(frozen=True)
 class Limites:
-    """Limites de requisições por IP."""
     consultas_por_minuto: int = 15
     relatos_por_hora: int = 10
     autenticacao_por_minuto: int = 10
@@ -207,15 +182,11 @@ class Configuracoes:
     db_usuario: str = "alertalar"
     db_senha: str = ""
     db_pool: int = 10
-    # De onde veio a conexão: "DATABASE_URL", "DB_URL" ou nenhuma (banco local padrão)
     origem_banco: str = "nenhuma variável (DATABASE_URL e DB_URL vazias)"
     cookie_seguro: bool = False
-    # Atrás de proxy reverso (Nginx, Render, Railway...): confia nos cabeçalhos X-Forwarded-*
     confiar_proxy: bool = False
-    # E-mail de contato enviado às APIs públicas (exigido pela política do Nominatim)
     contato_email: str = ""
     nome_aplicacao: str = "AlertaLar/1.0"
-    # Endereço público do site, enviado no User-Agent (no Render vem de RENDER_EXTERNAL_URL)
     url_publica: str = ""
     admin: Admin = field(default_factory=Admin)
     cors_origens: tuple[str, ...] = ()
@@ -227,8 +198,6 @@ class Configuracoes:
 
     @property
     def user_agent(self) -> str:
-        """User-Agent identificável, exigido pelas políticas de uso do Nominatim e do OSM:
-        "AlertaLar/1.0 (+https://alertalar.onrender.com; contato@...)"."""
         partes = []
         if self.url_publica.strip():
             partes.append("+" + self.url_publica.strip())
@@ -242,7 +211,6 @@ class Configuracoes:
 
     @property
     def descricao_banco(self) -> str:
-        """Servidor e banco, para os registros (sem usuário nem senha): "host:5432/banco"."""
         url = self.db_url[len("jdbc:"):] if self.db_url.startswith("jdbc:") else self.db_url
         try:
             partes = urlsplit(url)
@@ -254,7 +222,6 @@ class Configuracoes:
     @classmethod
     def do_ambiente(cls, env: dict[str, str] | None = None) -> Configuracoes:
         e = ler_env() if env is None else env
-        # DATABASE_URL tem a menor prioridade: DB_URL, DB_USERNAME e DB_PASSWORD continuam valendo
         banco: dict[str, str] = {}
         origem = "nenhuma variável (DATABASE_URL e DB_URL vazias)"
         if e.get("DATABASE_URL", "").strip():

@@ -1,6 +1,3 @@
-"""Fatores independentes da análise de risco. Cada fator lê apenas os dados de que precisa no
-:class:`ContextoAnalise` e devolve uma :class:`AvaliacaoFator` explicada."""
-
 from __future__ import annotations
 
 from collections import Counter
@@ -17,13 +14,6 @@ from alertalar.util.numeros import arredondar
 
 @dataclass(frozen=True)
 class AvaliacaoFator:
-    """Resultado da avaliação de um fator.
-
-    ``pontuacao``: 0 (sem indício) a 3 (indício forte), None se não avaliado; ``forca_alto``:
-    evidência oficial suficiente para classificar como alto risco; ``minimo_moderado``: evidência
-    suficiente para impedir a classificação "baixo".
-    """
-
     codigo: str
     nome: str
     categoria: CategoriaFator
@@ -46,15 +36,12 @@ class FatorRisco:
     codigo: str
     nome: str
     categoria: CategoriaFator
-    # Peso do fator na média ponderada
     peso: float
-    # Código da FonteDados que sustenta o fator
     codigo_fonte: str
 
     def avaliar(self, ctx: ContextoAnalise) -> AvaliacaoFator:
         raise NotImplementedError
 
-    # ---- atalhos para as implementações ----
 
     def avaliado(self, pontuacao: int, valor: str | None, explicacao: str, data: datetime | None,
                  forca_alto: bool = False, minimo_moderado: bool = False) -> AvaliacaoFator:
@@ -71,10 +58,6 @@ class FatorRisco:
 
 
 class FatorSetorRiscoOficial(FatorRisco):
-    """Setores de risco hidrológico (inundação, enxurrada, alagamento) mapeados pelo Serviço
-    Geológico do Brasil. Estar dentro de um setor de risco alto ou muito alto é classificado como
-    alto risco."""
-
     CODIGO = codigo = "SETOR_RISCO_SGB"
     nome = "Área de risco mapeada pelo SGB"
     categoria = CategoriaFator.RISCO_MAPEADO
@@ -111,7 +94,6 @@ class FatorSetorRiscoOficial(FatorRisco):
                         menor_distancia = p[2]
                         melhor = s
         if melhor is None:
-            # setor retornado sem geometria: o próprio serviço indicou interseção com o raio
             melhor = hidrologicos[0]
             menor_distancia = raio
 
@@ -137,13 +119,10 @@ class FatorSetorRiscoOficial(FatorRisco):
 
 
 def grau_alto(grau: str | None) -> bool:
-    return "alto" in txt.normalizar(grau)  # "Alto" e "Muito alto" (R3/R4)
+    return "alto" in txt.normalizar(grau)
 
 
 class FatorProximidadeAgua(FatorRisco):
-    """Distância até rios, canais e corpos d'água (principais) e até córregos, valas e drenos
-    (secundários), com base nas geometrias do OpenStreetMap."""
-
     CODIGO = codigo = "PROXIMIDADE_AGUA"
     nome = "Proximidade de rios, córregos e corpos d'água"
     categoria = CategoriaFator.SUSCETIBILIDADE
@@ -192,7 +171,6 @@ class FatorProximidadeAgua(FatorRisco):
 
 
 def pontuar_principal(distancia: float) -> int:
-    """Rios, canais e corpos d'água."""
     if distancia <= 150:
         return 3
     if distancia <= 400:
@@ -203,7 +181,6 @@ def pontuar_principal(distancia: float) -> int:
 
 
 def pontuar_secundario(distancia: float) -> int:
-    """Córregos, valas e drenos (menor volume, mas transbordam com chuva forte)."""
     if distancia <= 50:
         return 2
     if distancia <= 150:
@@ -216,15 +193,11 @@ def _capitalizar(s: str | None) -> str | None:
 
 
 class FatorElevacaoRelativa(FatorRisco):
-    """Elevação relativa do terreno (Copernicus DEM GLO-90): desnível em relação ao curso d'água
-    mais próximo e em relação ao entorno imediato (pontos baixos acumulam água)."""
-
     CODIGO = codigo = "ELEVACAO_RELATIVA"
     nome = "Elevação relativa do terreno"
     categoria = CategoriaFator.SUSCETIBILIDADE
     peso = 2.0
     codigo_fonte = "COPERNICUS_DEM"
-    # Acima desta distância, o desnível até a água deixa de ser um bom indicador local
     DISTANCIA_MAXIMA_AGUA = 1000
 
     def avaliar(self, ctx: ContextoAnalise) -> AvaliacaoFator:
@@ -291,9 +264,6 @@ def _desnivel_texto(d: float) -> str:
 
 
 class FatorOcorrenciasLocais(FatorRisco):
-    """Ocorrências pontuais CONFIRMADAS perto do endereço: registros oficiais com coordenadas e
-    relatos de usuários já validados pela moderação. Relatos pendentes nunca entram."""
-
     CODIGO = codigo = "OCORRENCIAS_LOCAIS"
     nome = "Ocorrências registradas nas proximidades"
     categoria = CategoriaFator.HISTORICO
@@ -329,10 +299,6 @@ class FatorOcorrenciasLocais(FatorRisco):
 
 
 class FatorHistoricoMunicipal(FatorRisco):
-    """Registros oficiais de desastres ligados a chuva no MUNICÍPIO (Atlas Digital / S2iD):
-    inundações, enxurradas, alagamentos e chuvas intensas. Como não indicam a rua afetada, têm
-    peso baixo e pontuação máxima 2."""
-
     CODIGO = codigo = "HISTORICO_MUNICIPAL"
     nome = "Histórico oficial de desastres no município"
     categoria = CategoriaFator.HISTORICO
@@ -386,6 +352,5 @@ def _rotulo_plural(tipo: TipoEvento, n: int) -> str:
 
 
 def fatores_padrao() -> list[FatorRisco]:
-    """Os fatores na ordem em que aparecem na análise."""
     return [FatorSetorRiscoOficial(), FatorProximidadeAgua(), FatorElevacaoRelativa(), FatorOcorrenciasLocais(),
             FatorHistoricoMunicipal()]

@@ -1,9 +1,3 @@
-"""Validação de endereços, consulta de CEP e geocodificação.
-
-Regra: a análise só é feita com precisão de rua ou melhor (ou posição confirmada no mapa); nunca
-apenas pelo CEP, bairro ou cidade.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -50,7 +44,6 @@ class EnderecoService:
         self.fontes = fontes
 
     def buscar_cep(self, cep: str) -> CepResponse:
-        """Consulta o CEP (para preencher o formulário)."""
         digitos = txt.somente_digitos(cep)
         if len(digitos) != 8:
             raise RequisicaoInvalida("O CEP deve ter 8 dígitos.")
@@ -62,7 +55,6 @@ class EnderecoService:
                            codigo_ibge=d.codigo_ibge, fonte=viacep.FONTE)
 
     def localizar(self, req: EnderecoRequest) -> LocalizacaoResponse:
-        """Geocodifica e devolve os candidatos para o usuário confirmar no mapa."""
         limpo = limpar(req)
         candidatos = self.geocodificar(limpo)
         if not candidatos:
@@ -81,8 +73,6 @@ class EnderecoService:
             for c in candidatos], mensagem=mensagem)
 
     def resolver_para_analise(self, req: EnderecoRequest) -> Endereco:
-        """Resolve o endereço para análise. Com coordenadas confirmadas pelo usuário, usa-as
-        (precisão MANUAL); sem elas, geocodifica exigindo ao menos precisão de rua."""
         limpo = limpar(req)
         dados_cep = self._consultar_cep_silencioso(limpo.cep)
         codigo_ibge = None
@@ -106,7 +96,6 @@ class EnderecoService:
         em_cache = self.repositorio.por_chave(chave_end)
         if em_cache is not None:
             if txt.vazio(em_cache.codigo_ibge) and not txt.vazio(codigo_ibge):
-                # endereço guardado quando o município não pôde ser identificado: completa agora
                 em_cache.codigo_ibge = codigo_ibge
                 return self.repositorio.salvar(em_cache)
             return em_cache
@@ -127,15 +116,12 @@ class EnderecoService:
         try:
             return self.repositorio.salvar(e)
         except ErroIntegridade:
-            # outra requisição gravou o mesmo endereço ao mesmo tempo
             concorrente = self.repositorio.por_chave(chave_end)
             if concorrente is None:
                 raise
             return concorrente
 
     def geocodificar(self, req: EnderecoRequest) -> list[Candidato]:
-        """Candidatos do mais para o menos preciso, já filtrados por cidade/UF. A busca vai ao
-        Nominatim e, se ele recusar, não responder ou não achar, ao Photon."""
         busca = self.geocodificacao.buscar(req, lambda resultados: _filtrar(resultados, req))
         candidatos = [Candidato(r, precisao(r, req.numero), busca.fonte) for r in busca.resultados]
         return sorted(candidatos, key=lambda c: (9 if c.precisao is None else c.precisao.ordem, -c.r.place_rank))
@@ -150,7 +136,6 @@ class EnderecoService:
             return None
 
     def _codigo_ibge_silencioso(self, uf: str, cidade: str) -> str | None:
-        """Código IBGE do município: lista guardada no sistema e, se não estiver nela, API do IBGE."""
         local = self.municipios.codigo(uf, cidade)
         if local is not None:
             return local
@@ -172,8 +157,6 @@ def _filtrar(resultados: list[ResultadoGeocodificacao], req: EnderecoRequest) ->
 
 
 def precisao(r: ResultadoGeocodificacao, numero_pedido: str | None) -> PrecisaoGeocodificacao | None:
-    """NUMERO: a busca encontrou o mesmo número do imóvel; RUA: encontrou a via; None: apenas
-    bairro, CEP ou cidade (insuficiente)."""
     pedido = txt.normalizar(numero_pedido)
     mesmo_numero = r.numero is not None and pedido != "" and txt.normalizar(r.numero) == pedido
     if mesmo_numero and r.place_rank >= 26:

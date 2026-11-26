@@ -1,5 +1,3 @@
-"""Busca de endereços com o Nominatim e a reserva Photon (pausa no limite, cache, conferência de nome)."""
-
 from datetime import datetime, timedelta, timezone
 from unittest.mock import ANY, Mock
 
@@ -17,8 +15,6 @@ from alertalar.servicos.geocodificacao import GeocodificacaoService
 
 
 class Relogio:
-    """Relógio que o teste avança."""
-
     def __init__(self) -> None:
         self.agora = datetime(2026, 11, 9, 12, 0, tzinfo=timezone.utc)
 
@@ -71,11 +67,9 @@ def test_nominatim_no_limite_a_busca_segue_no_photon_e_ele_fica_5_min_em_pausa(c
     ctx.fontes.registrar_acesso.assert_any_call("PHOTON", ANY)
     assert ctx.servico.nominatim_em_pausa()
 
-    # Em pausa: o próximo endereço vai direto ao Photon, sem insistir no Nominatim
     assert ctx.servico.buscar(req("200"), sem_filtro).fonte == photon_mod.FONTE
     assert ctx.nominatim.buscar_estruturado.call_count == 1
 
-    # Passados 5 minutos, o Nominatim volta a ser o primeiro
     ctx.relogio.agora += timedelta(minutes=5, seconds=1)
     assert not ctx.servico.nominatim_em_pausa()
     ctx.servico.buscar(req("300"), sem_filtro)
@@ -107,7 +101,7 @@ def test_os_dois_fora_do_ar_mensagem_clara_com_a_opcao_de_marcar_no_mapa(ctx):
 def test_em_pausa_se_o_photon_tambem_falhar_o_nominatim_ainda_e_tentado(ctx):
     ctx.nominatim.buscar_estruturado.side_effect = [recusa(429), [casa("200", "Rua de Teste")]]
     ctx.photon.buscar.side_effect = [[casa("100", "Rua de Teste")], IntegracaoExterna(photon_mod.FONTE, "fora do ar")]
-    ctx.servico.buscar(req("100"), sem_filtro)  # põe o Nominatim em pausa
+    ctx.servico.buscar(req("100"), sem_filtro)
 
     busca = ctx.servico.buscar(req("200"), sem_filtro)
 
@@ -123,7 +117,7 @@ def test_nominatim_nao_acha_o_photon_tenta_e_nome_diferente_vale_so_como_aproxim
     assert busca.fonte == photon_mod.FONTE
     assert busca.resultados[0].place_rank == 20, "outra rua: só posição aproximada"
     assert not ctx.servico.nominatim_em_pausa(), "não achar não é falha"
-    ctx.nominatim.buscar_texto.assert_called()  # as tentativas do Nominatim continuam iguais
+    ctx.nominatim.buscar_texto.assert_called()
 
 
 def test_nominatim_nao_acha_e_o_photon_cai_endereco_nao_encontrado(ctx):

@@ -1,6 +1,3 @@
-"""Servidor HTTP local usado nos testes para simular as APIs externas com respostas no mesmo formato
-das reais. Permite testar a comunicação HTTP de verdade, sem internet."""
-
 from __future__ import annotations
 
 import threading
@@ -13,8 +10,6 @@ from urllib.parse import parse_qs, urlsplit
 
 @dataclass(frozen=True)
 class Resposta:
-    """Resposta programada: status HTTP, corpo e atraso opcional (para simular tempo esgotado)."""
-
     status: int
     corpo: str
     atraso_s: float = 0.0
@@ -31,8 +26,6 @@ class Resposta:
 
 @dataclass(frozen=True)
 class Requisicao:
-    """Requisição recebida, para verificação nos testes."""
-
     metodo: str
     caminho: str
     query: str
@@ -60,7 +53,7 @@ class ServidorHttpFalso:
         class Tratador(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
 
-            def log_message(self, *args) -> None:  # silencia o log de cada requisição
+            def log_message(self, *args) -> None:
                 pass
 
             def _tratar(self) -> None:
@@ -86,7 +79,7 @@ class ServidorHttpFalso:
                     self.end_headers()
                     self.wfile.write(dados)
                 except OSError:
-                    pass  # o cliente pode ter desistido (teste de tempo esgotado)
+                    pass
 
             do_GET = do_POST = _tratar
 
@@ -96,7 +89,6 @@ class ServidorHttpFalso:
         self._thread.start()
 
     def rota(self, prefixo: str, resposta: Rota | Resposta) -> ServidorHttpFalso:
-        """Rota por prefixo de caminho (ex.: "/viacep/")."""
         self._rotas[prefixo] = resposta if callable(resposta) else (lambda req, r=resposta: r)
         return self
 

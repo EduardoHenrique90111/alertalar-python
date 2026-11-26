@@ -1,6 +1,3 @@
-"""Limite de requisições, sessões, CSRF, hash de senhas e tratamento de erros sem vazamento de detalhes
-internos."""
-
 import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
@@ -61,7 +58,6 @@ def test_senhas_sao_guardadas_com_bcrypt():
     assert h1.startswith("$2")
     assert confere_senha("senhaSegura1", h1)
     assert not confere_senha("outra", h1)
-    # hash gerado pelo Spring Security da versão em Java (BCryptPasswordEncoder, custo 4): continua valendo
     hash_java = "$2a$04$ZdC5CwIWmREEn5IylswXKu5NnsuwOX9.DvwcA0b5LaXZzB/cnJPCi"
     assert confere_senha("senhaSegura1", hash_java)
     assert not confere_senha("senhaSegura2", hash_java)
@@ -78,8 +74,6 @@ def test_sessoes_expiram_sem_uso():
     assert armazem.obter(sessao.id) is None
     assert armazem.obter("inventada") is None
 
-
-# ---------------------------------------------------------------- aplicação mínima
 
 def _app(limites: Limites = Limites()) -> FastAPI:
     app = FastAPI()
@@ -132,7 +126,7 @@ def test_erros_de_negocio_viram_respostas_http_adequadas(cliente):
     assert integracao.json()["fonte"] == "ViaCEP"
     login = cliente.get("/api/erro/login")
     assert login.status_code == 401
-    assert login.json()["detail"] == "E-mail ou senha incorretos."  # não informa se o e-mail existe
+    assert login.json()["detail"] == "E-mail ou senha incorretos."
     precisao = cliente.get("/api/erro/precisao")
     assert precisao.status_code == 422
     assert precisao.json()["codigo"] == "PRECISAO_INSUFICIENTE"
@@ -160,7 +154,6 @@ def test_csrf_obrigatorio_e_sessao_nova_ao_entrar(cliente):
     assert cliente.cookies.get("XSRF-TOKEN") != token_antes
     assert cliente.get("/api/admin/resumo").json() == {"email": "ana@exemplo.com"}
 
-    # sair encerra a sessão no servidor (o cookie antigo deixa de valer)
     id_antigo = cliente.cookies.get("ALERTALAR_SESSAO")
     assert cliente.post("/api/auth/logout", headers={"X-XSRF-TOKEN": cliente.cookies.get("XSRF-TOKEN")}).status_code == 204
     cliente.cookies.set("ALERTALAR_SESSAO", id_antigo)

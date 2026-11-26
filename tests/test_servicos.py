@@ -1,6 +1,3 @@
-"""Consulta (orquestração), relatos e moderação, importação oficial e situação atual, com dependências
-simuladas."""
-
 import json
 import uuid
 from datetime import date, datetime, timedelta, timezone
@@ -36,8 +33,6 @@ from alertalar.servicos.importacao import ImportacaoService
 from alertalar.servicos.ocorrencias import OcorrenciaService, padrao_busca
 from alertalar.servicos.situacao_atual import SituacaoAtualService
 from tests.apoio.contexto import LAT, LON, ContextoTeste
-
-# ---------------------------------------------------------------- consulta
 
 
 def test_consulta_grava_classificacao_justificativa_fatores_com_fonte_e_mapa():
@@ -81,10 +76,8 @@ def test_recorte_de_linhas_mantem_apenas_os_trechos_perto_do_ponto():
     linha = [(LAT, LON + 0.001), (LAT, LON + 0.002), (LAT, LON + 0.5), (LAT, LON + 0.6)]
     trechos = recortar(linha, LAT, LON, 2000)
     assert len(trechos) == 1
-    assert len(trechos[0]) == 3  # dois pontos internos + o ponto de saída
+    assert len(trechos[0]) == 3
 
-
-# ---------------------------------------------------------------- relatos e moderação
 
 FONTE_RELATOS = FonteDados(id=8, codigo="ALERTALAR_RELATOS", nome="Relatos", tipo=TipoFonte.RELATO_USUARIO,
                            status_integracao=StatusIntegracao.ATIVA)
@@ -173,8 +166,6 @@ def test_busca_da_moderacao_em_minusculas_entre_porcentagens_sem_virar_curinga()
     assert padrao_busca(None) is None
 
 
-# ---------------------------------------------------------------- importação oficial
-
 def test_importa_como_oficial_confirmada_municipio_ignora_duplicados_e_atualiza_a_fonte():
     fonte = FonteDados(id=3, codigo="S2ID_RECONHECIMENTOS", nome="S2iD", tipo=TipoFonte.IMPORTACAO_OFICIAL,
                        status_integracao=StatusIntegracao.IMPORTACAO_MANUAL)
@@ -207,14 +198,11 @@ P-1;RS;Canoas;01/05/2024;1.2.1.0.0
     fontes.salvar.assert_called_once_with(fonte)
 
 
-# ---------------------------------------------------------------- situação atual
-
-AGORA = datetime(2026, 11, 7, 15, 0, tzinfo=timezone.utc)  # 07/11/2026 12:00 em Brasília
+AGORA = datetime(2026, 11, 7, 15, 0, tzinfo=timezone.utc)
 FUSO = timezone(timedelta(hours=-3))
 
 
 def serie(mm_por_hora) -> SerieChuva:
-    """Série horária de 80 h atrás até 96 h à frente; a função recebe a hora relativa a agora."""
     agora = AGORA.astimezone(FUSO).replace(tzinfo=None)
     horas = list(range(-80, 97))
     return SerieChuva(FUSO, [agora + timedelta(hours=h) for h in horas], [float(mm_por_hora(h)) for h in horas])
@@ -239,7 +227,6 @@ def situacao():
 
 
 def test_soma_a_chuva_por_janela(situacao):
-    # 1 mm/h entre 72 e 25 h atrás; 2 mm/h nas últimas 24 h; 3 mm/h nas próximas 24 h; 0,5 mm/h depois
     situacao.clima.chuva_horaria.return_value = serie(
         lambda h: 9 if h <= -72 else 1 if h <= -24 else 2 if h <= 0 else 3 if h <= 24 else 0.5)
 
@@ -270,7 +257,7 @@ def test_com_a_consulta_da_tela_local_de_alta_suscetibilidade_sem_chuva_fica_bai
 
 def test_mesma_chuva_locais_diferentes_e_a_chuva_vem_do_cache(situacao):
     alto, baixo = uuid.uuid4(), uuid.uuid4()
-    situacao.clima.chuva_horaria.return_value = serie(lambda h: 1.5 if -24 < h <= 0 else 0)  # 36 mm em 24 h
+    situacao.clima.chuva_horaria.return_value = serie(lambda h: 1.5 if -24 < h <= 0 else 0)
     situacao.consultas.com_fatores.side_effect = lambda i: {alto: consulta(ClassificacaoRisco.ALTO, 0),
                                                             baixo: consulta(ClassificacaoRisco.BAIXO, 0)}.get(i)
 

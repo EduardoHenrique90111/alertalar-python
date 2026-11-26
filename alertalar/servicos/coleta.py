@@ -1,6 +1,3 @@
-"""Coleta, de forma independente e em paralelo, os dados reais de cada fonte para um ponto.
-A falha de uma fonte vira "indisponível" naquele fator, sem interromper as demais."""
-
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
@@ -34,7 +31,7 @@ def _anos_atras(anos: int, hoje: date | None = None) -> date:
     hoje = hoje or date.today()
     try:
         return hoje.replace(year=hoje.year - anos)
-    except ValueError:  # 29 de fevereiro
+    except ValueError:
         return hoje.replace(year=hoje.year - anos, day=28)
 
 
@@ -48,7 +45,6 @@ class ColetaDadosService:
         self.fontes = fontes
         self.parametros = parametros
         self._executor = ThreadPoolExecutor(max_workers=16, thread_name_prefix="coleta")
-        # Cache por coordenada (~1 m) para não repetir consultas às APIs públicas em sequência
         self._cache_cursos: CacheTemporario[str, list[CursoDagua]] = CacheTemporario(6 * 3600, 2_000)
         self._cache_setores: CacheTemporario[str, list[SetorRisco]] = CacheTemporario(6 * 3600, 2_000)
         self._cache_elevacao: CacheTemporario[str, PerfilElevacao] = CacheTemporario(7 * 24 * 3600, 5_000)
@@ -69,9 +65,6 @@ class ColetaDadosService:
             return Dado.coletar(lambda: self._cache_setores.obter_ou_calcular(
                 chave, lambda: self.sgb.buscar_proximos(lat, lon, p.raio_setores_risco_metros)))
 
-        # A elevação depende do curso d'água mais próximo (ponto de referência do desnível), então
-        # roda logo depois dos cursos d'água, na mesma tarefa. Só guarda em cache quando os cursos
-        # estavam disponíveis, para não fixar um perfil incompleto.
         def cursos_e_elevacao() -> tuple[Dado[list[CursoDagua]], Dado[PerfilElevacao]]:
             dado_cursos = cursos()
             if dado_cursos.disponivel:
@@ -101,7 +94,6 @@ class ColetaDadosService:
                                dado_cursos, perfil, dado_setores, proximas, historico)
 
     def perfil_elevacao(self, lat: float, lon: float, cursos: Dado[list[CursoDagua]]) -> PerfilElevacao:
-        """Elevação no ponto, no curso d'água mais próximo e em 8 pontos ao redor (uma única requisição)."""
         pontos = [(lat, lon)] + [geo.deslocar(lat, lon, RAIO_ENTORNO_METROS, i * 45.0) for i in range(8)]
         agua = None
         if cursos.disponivel:
@@ -118,7 +110,6 @@ class ColetaDadosService:
                               agua.curso.descricao() if agua else None, media, RAIO_ENTORNO_METROS, len(anel))
 
     def ocorrencias_proximas(self, lat: float, lon: float) -> list[OcorrenciaProxima]:
-        """Ocorrências CONFIRMADAS com coordenadas dentro do raio (relatos pendentes ficam de fora)."""
         return self.ocorrencias_no_raio(lat, lon, self.parametros.raio_ocorrencias_metros,
                                         self.parametros.anos_historico)
 

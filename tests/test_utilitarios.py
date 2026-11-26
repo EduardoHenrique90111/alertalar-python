@@ -1,5 +1,3 @@
-"""Texto, UFs, números e cálculos geográficos."""
-
 import pytest
 
 from alertalar.util import geo, numeros, texto
@@ -29,7 +27,6 @@ def test_reconhece_uf_por_sigla_ou_nome():
 
 
 def test_distancia_de_haversine_entre_pontos_conhecidos():
-    # 0,01° de latitude ≈ 1.112 m
     assert geo.distancia_metros(-29.90, -51.18, -29.91, -51.18) == pytest.approx(1112, abs=5)
 
 
